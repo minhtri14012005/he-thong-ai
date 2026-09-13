@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Giám Sát & Nhận Diện AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --primary: #38bdf8;
+            --primary-hover: #0284c7;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border-color: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--primary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-bar {
+            display: flex;
+            gap: 10px;
+            background: #0f172a;
+            padding: 6px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #0f172a;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .media-container {
+            width: 100%;
+            min-height: 400px;
+            background: #000;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .media-container img {
+            width: 100%;
+            max-height: 520px;
+            object-fit: contain;
+        }
+
+        .stream-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 14px;
+            justify-content: center;
+        }
+
+        .form-group { margin-bottom: 16px; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .input-control {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-control:focus { border-color: var(--primary); }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-full { width: 100%; padding: 12px; font-size: 0.95rem; }
+        .btn-primary { background: var(--primary); color: #0f172a; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: #0f172a; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-warning { background: var(--warning); color: #0f172a; }
+
+        .preview-box {
+            width: 100%;
+            height: 120px;
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-sub);
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .msg-box {
+            margin-top: 14px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .msg-box.show { display: block; }
+        .msg-success { background: rgba(34, 197, 94, 0.15); color: var(--success); border: 1px solid var(--success); }
+        .msg-error { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        .msg-info { background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid var(--primary); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><i class="fa-solid fa-eye"></i> AI Face Detection System</h1>
+        <div class="status-badge">
+            <span class="status-dot"></span> System Ready
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="tab-bar">
+                <button class="tab-btn active" id="camTabBtn" onclick="switchTab('cam')">
+                    <i class="fa-solid fa-video"></i> Live Camera / IP Cam
+                </button>
+                <button class="tab-btn" id="fileTabBtn" onclick="switchTab('file')">
+                    <i class="fa-solid fa-file-video"></i> Tải Video Lên
+                </button>
+            </div>
+
+            <!-- TAB 1: LIVE CAMERA -->
+            <div id="camTab" class="tab-content active">
+                <div style="display: flex; gap: 10px; margin-bottom: 14px; align-items: center; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label style="font-weight: 500; font-size: 0.875rem; color: var(--text-sub); white-space: nowrap;">Nguồn Cam:</label>
+                    <select id="camSourceSelect" class="input-control" style="width: 180px; padding: 8px 12px;" onchange="toggleIpInput()">
+                        <option value="webcam">Webcam Máy Tính</option>
+                        <option value="iphone">iPhone (DroidCam)</option>
+                    </select>
+
+                    <input type="text" id="iphoneIpInput" placeholder="IP iPhone (VD: 192.168.1.15)" class="input-control" style="width: 220px; padding: 8px 12px; display: none;">
+
+                    <button type="button" class="btn btn-primary" style="margin-left: auto;" onclick="changeCameraSource()">
+                        <i class="fa-solid fa-sync"></i> Kết Nối
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 2: TẢI VIDEO LÊN -->
+            <div id="fileTab" class="tab-content">
+                <form id="uploadVideoForm" class="form-group">
+                    <label><i class="fa-solid fa-upload"></i> Chọn file video phân tích (MP4, AVI, MOV):</label>
+                    <input type="file" id="videoFileInput" accept="video/*" class="input-control" required style="margin-bottom: 12px;">
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fa-solid fa-microchip"></i> Phát Video & Phân Tích AI Realtime
+                    </button>
+                </form>
+
+                <div id="videoMsg" class="msg-box"></div>
+            </div>
+
+            <!-- KHUNG HIỂN THỊ MÀN HÌNH AI STREAM -->
+            <div class="media-container">
+                <img id="cameraStream" src="/video_feed?source=webcam" alt="Live AI Stream">
+            </div>
+
+            <!-- THANH ĐIỀU KHIỂN BẬT / TẮT / DỪNG VIDEO -->
+            <div class="stream-controls">
+                <button type="button" id="pauseBtn" class="btn btn-warning" onclick="togglePause()">
+                    <i class="fa-solid fa-pause"></i> Tạm Dừng
+                </button>
+                <button type="button" id="stopBtn" class="btn btn-danger" onclick="stopStream()">
+                    <i class="fa-solid fa-power-off"></i> Tắt Video / Cam
+                </button>
+            </div>
+        </div>
+
+        <!-- Cột Phải: Đăng Ký Khuôn Mặt -->
+        <div class="card">
+            <h2 style="font-size: 1.1rem; margin-bottom: 16px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-user-plus"></i> Đăng Ký Khuôn Mặt
+            </h2>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="personName">Họ và Tên / Nhãn:</label>
+                    <input type="text" id="personName" placeholder="Ví dụ: Nguyen Van A" class="input-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Ảnh khuôn mặt mẫu:</label>
+                    <input type="file" id="faceImageInput" accept="image/*" class="input-control" required onchange="previewImage(event)">
+
+                    <div class="preview-box" id="previewContainer">
+                        <i class="fa-solid fa-image fa-2x"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-full">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu Vào Cơ Sở Dữ Liệu
+                </button>
+            </form>
+
+            <div id="registerMsg" class="msg-box"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentSource = 'webcam';
+        let isPausedState = false;
+        let isStreamActive = true;
+
+        function switchTab(type) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (type === 'cam') {
+                document.getElementById('camTabBtn').classList.add('active');
+                document.getElementById('camTab').classList.add('active');
+                changeCameraSource();
+            } else {
+                document.getElementById('fileTabBtn').classList.add('active');
+                document.getElementById('fileTab').classList.add('active');
+            }
+        }
+
+        function toggleIpInput() {
+            const source = document.getElementById('camSourceSelect').value;
+            const ipInput = document.getElementById('iphoneIpInput');
+            ipInput.style.display = (source === 'iphone') ? 'block' : 'none';
+        }
+
+        function startStream(source, ip = "") {
+            const streamImg = document.getElementById('cameraStream');
+            const stopBtn = document.getElementById('stopBtn');
+
+            const timestamp = new Date().getTime();
+            streamImg.src = `/video_feed?source=${source}&ip=${encodeURIComponent(ip)}&t=${timestamp}`;
+
+            isStreamActive = true;
+            stopBtn.innerHTML = `<i class="fa-solid fa-power-off"></i> Tắt Video / Cam`;
+            stopBtn.className = "btn btn-danger";
+        }
+
+        function stopStream() {
+            const streamImg = document.getElementById('cameraStream');
+            const stopBtn = document.getElementById('stopBtn');
+
+            if (isStreamActive) {
+                streamImg.src = "";
+                isStreamActive = false;
+                stopBtn.innerHTML = `<i class="fa-solid fa-play"></i> Bật Lại Video / Cam`;
+                stopBtn.className = "btn btn-success";
+            } else {
+                const ip = document.getElementById('iphoneIpInput').value.trim();
+                startStream(currentSource, ip);
+            }
+        }
+
+        function changeCameraSource() {
+            const source = document.getElementById('camSourceSelect').value;
+            const ip = document.getElementById('iphoneIpInput').value.trim();
+            if (source === 'iphone' && !ip) {
+                alert('Vui lòng nhập địa chỉ IP iPhone!');
+                return;
+            }
+
+            currentSource = source;
+            resetPauseState();
+            startStream(source, ip);
+        }
+
+        async function togglePause() {
+            const pauseBtn = document.getElementById('pauseBtn');
+            const action = isPausedState ? "resume" : "pause";
+
+            try {
+                await fetch(`/api/control_stream?action=${action}`, { method: 'POST' });
+                isPausedState = !isPausedState;
+
+                if (isPausedState) {
+                    pauseBtn.innerHTML = `<i class="fa-solid fa-play"></i> Tiếp Tục`;
+                    pauseBtn.className = "btn btn-primary";
+                } else {
+                    pauseBtn.innerHTML = `<i class="fa-solid fa-pause"></i> Tạm Dừng`;
+                    pauseBtn.className = "btn btn-warning";
+                }
+            } catch (err) {
+                console.error("Lỗi điều khiển luồng:", err);
+            }
+        }
+
+        function resetPauseState() {
+            isPausedState = false;
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.innerHTML = `<i class="fa-solid fa-pause"></i> Tạm Dừng`;
+            pauseBtn.className = "btn btn-warning";
+            fetch('/api/control_stream?action=resume', { method: 'POST' });
+        }
+
+        function previewImage(event) {
+            const container = document.getElementById('previewContainer');
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    container.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('personName').value;
+            const fileInput = document.getElementById('faceImageInput');
+            const msgBox = document.getElementById('registerMsg');
+
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('file', fileInput.files[0]);
+
+            msgBox.className = "msg-box show msg-info";
+            msgBox.innerText = "Đang trích xuất đặc trưng khuôn mặt...";
+
+            try {
+                const res = await fetch('/api/register', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    msgBox.className = "msg-box show msg-success";
+                    msgBox.innerText = data.message;
+                    document.getElementById('registerForm').reset();
+                    document.getElementById('previewContainer').innerHTML = `<i class="fa-solid fa-image fa-2x"></i>`;
+                } else {
+                    msgBox.className = "msg-box show msg-error";
+                    msgBox.innerText = data.message;
+                }
+            } catch (err) {
+                msgBox.className = "msg-box show msg-error";
+                msgBox.innerText = "Lỗi kết nối tới máy chủ!";
+            }
+        });
+
+        document.getElementById('uploadVideoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('videoFileInput');
+            const msgBox = document.getElementById('videoMsg');
+
+            if (!fileInput.files[0]) return;
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            msgBox.className = "msg-box show msg-info";
+            msgBox.innerText = "Đang nạp file video...";
+
+            try {
+                const res = await fetch('/api/upload_video', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    msgBox.className = "msg-box show msg-success";
+                    msgBox.innerText = data.message;
+
+                    currentSource = 'file';
+                    resetPauseState();
+                    startStream('file');
+                } else {
+                    msgBox.className = "msg-box show msg-error";
+                    msgBox.innerText = data.message;
+                }
+            } catch (err) {
+                msgBox.className = "msg-box show msg-error";
+                msgBox.innerText = "Có lỗi xảy ra khi tải file video!";
+            }
+        });
+    </script>
+</body>
+</html>
