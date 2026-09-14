@@ -1,8 +1,10 @@
+import os
 import cv2
+import uuid
 import numpy as np
 import insightface
 from insightface.app import FaceAnalysis
-from config import SIMILARITY_THRESHOLD, DET_SIZE
+from config import SIMILARITY_THRESHOLD, DET_SIZE, UPLOAD_DIR
 from database import load_all_embeddings
 
 
@@ -17,13 +19,33 @@ class HighAccuracyFaceEngine:
         self.known_faces = load_all_embeddings()
 
     def extract_face_embedding(self, image: np.ndarray):
-        """Trích xuất Vector 512D từ ảnh đăng ký"""
+        """Trích xuất Vector 512D và tự động cắt lưu ảnh mẫu vào static/uploads"""
         faces = self.app.get(image)
         if len(faces) == 0:
-            return None, "Không phát hiện thấy khuôn mặt nào trong ảnh!"
+            return None, None, "Không phát hiện thấy khuôn mặt nào trong ảnh!"
 
+        # Lấy khuôn mặt lớn nhất trong ảnh
         largest_face = max(faces, key=lambda x: (x.bbox[2] - x.bbox[0]) * (x.bbox[3] - x.bbox[1]))
-        return largest_face.embedding, "Thành công"
+
+        # 1. Cắt vùng khuôn mặt (Crop Face)
+        bbox = largest_face.bbox.astype(int)
+        h, w, _ = image.shape
+        x1, y1, x2, y2 = max(0, bbox[0]), max(0, bbox[1]), min(w, bbox[2]), min(h, bbox[3])
+        cropped_face = image[y1:y2, x1:x2]
+
+        # 2. Tạo tên file ngẫu nhiên và lưu ảnh thực tế vào static/uploads
+        filename = f"{uuid.uuid4().hex}.jpg"
+        full_path = os.path.join(UPLOAD_DIR, filename)
+
+        if cropped_face.size > 0:
+            cv2.imwrite(full_path, cropped_face)
+        else:
+            cv2.imwrite(full_path, image)  # Fallback lưu cả ảnh nếu crop lỗi
+
+        # Đường dẫn tương đối dùng để lưu vào CSDL cho web đọc
+        rel_path = f"static/uploads/{filename}"
+
+        return largest_face.embedding, rel_path, "Thành công"
 
     def process_frame(self, frame: np.ndarray):
         """Phát hiện và Nhận diện khuôn mặt trong 1 khung hình"""

@@ -27,56 +27,27 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             min-height: 100vh;
-            padding: 24px;
+            width: 100vw;
+            padding: 20px 30px;
+            overflow-x: hidden;
         }
 
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--border-color);
+            width: 100%;
         }
-
-        header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--primary);
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(34, 197, 94, 0.1);
-            color: var(--success);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--success);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--success);
-        }
+        header h1 { font-size: 1.6rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 12px; }
 
         .dashboard-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 24px;
-        }
-
-        @media (max-width: 992px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
+            gap: 20px;
+            width: 100%;
         }
 
         .card {
@@ -85,44 +56,20 @@
             padding: 20px;
             border: 1px solid var(--border-color);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        }
-
-        .tab-bar {
             display: flex;
-            gap: 10px;
-            background: #0f172a;
-            padding: 6px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            flex-direction: column;
         }
 
-        .tab-btn {
-            flex: 1;
-            padding: 10px 16px;
-            border: none;
-            background: transparent;
-            color: var(--text-sub);
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .tab-btn.active {
-            background: var(--primary);
-            color: #0f172a;
-        }
+        .tab-bar { display: flex; gap: 10px; background: #0f172a; padding: 6px; border-radius: 8px; margin-bottom: 16px; }
+        .tab-btn { flex: 1; padding: 10px 16px; border: none; background: transparent; color: var(--text-sub); font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .tab-btn.active { background: var(--primary); color: #0f172a; }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         .media-container {
             width: 100%;
-            min-height: 400px;
+            max-height: 520px;
             background: #000;
             border-radius: 8px;
             display: flex;
@@ -130,360 +77,445 @@
             align-items: center;
             overflow: hidden;
             border: 1px solid var(--border-color);
-            position: relative;
         }
-
         .media-container img {
-            width: 100%;
+            max-width: 100%;
             max-height: 520px;
             object-fit: contain;
         }
 
-        .stream-controls {
-            display: flex;
-            gap: 12px;
-            margin-top: 14px;
-            justify-content: center;
-        }
+        .stream-controls { display: flex; gap: 12px; margin-top: 16px; justify-content: center; }
 
         .form-group { margin-bottom: 16px; }
+        .input-control { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); font-size: 0.95rem; outline: none; }
 
-        .form-group label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-sub);
-            margin-bottom: 6px;
-        }
-
-        .input-control {
-            width: 100%;
-            padding: 10px 14px;
-            background: #0f172a;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-main);
-            font-size: 0.95rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .input-control:focus { border-color: var(--primary); }
-
-        .btn {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-full { width: 100%; padding: 12px; font-size: 0.95rem; }
+        .btn { padding: 8px 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.85rem; }
+        .btn-full { width: 100%; padding: 12px; font-size: 0.9rem; }
         .btn-primary { background: var(--primary); color: #0f172a; }
-        .btn-primary:hover { background: var(--primary-hover); }
         .btn-success { background: var(--success); color: #0f172a; }
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-warning { background: var(--warning); color: #0f172a; }
 
-        .preview-box {
+        .log-table-wrapper { flex: 1; overflow-y: auto; max-height: 520px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+        th { background: #0f172a; color: var(--text-sub); position: sticky; top: 0; }
+
+        .person-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
             width: 100%;
-            height: 120px;
-            border: 2px dashed var(--border-color);
-            border-radius: 6px;
+        }
+
+        .person-card {
+            background: #0f172a;
+            padding: 16px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .person-info {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 20px;
+        }
+
+        .person-info h3 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .person-info p {
+            font-size: 0.9rem;
             color: var(--text-sub);
-            margin-top: 8px;
-            overflow: hidden;
+            margin: 0;
         }
 
-        .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+        .person-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
 
-        .msg-box {
-            margin-top: 14px;
-            padding: 10px 14px;
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 999; }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 480px; border: 1px solid var(--border-color); }
+
+        .sample-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+        }
+        .sample-thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
             border-radius: 6px;
-            font-size: 0.875rem;
-            display: none;
+            border: 1px solid var(--border-color);
+            background: #1e293b;
         }
-
-        .msg-box.show { display: block; }
-        .msg-success { background: rgba(34, 197, 94, 0.15); color: var(--success); border: 1px solid var(--success); }
-        .msg-error { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); }
-        .msg-info { background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid var(--primary); }
     </style>
 </head>
 <body>
 
     <header>
         <h1><i class="fa-solid fa-eye"></i> AI Face Detection System</h1>
-        <div class="status-badge">
-            <span class="status-dot"></span> System Ready
-        </div>
     </header>
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <div class="tab-bar">
-                <button class="tab-btn active" id="camTabBtn" onclick="switchTab('cam')">
-                    <i class="fa-solid fa-video"></i> Live Camera / IP Cam
-                </button>
-                <button class="tab-btn" id="fileTabBtn" onclick="switchTab('file')">
-                    <i class="fa-solid fa-file-video"></i> Tải Video Lên
-                </button>
-            </div>
+    <div class="card" style="margin-bottom: 16px;">
+        <div class="tab-bar" style="margin-bottom: 0;">
+            <button class="tab-btn active" id="camTabBtn" onclick="switchTab('cam')">
+                <i class="fa-solid fa-video"></i> Live Camera / IP Cam
+            </button>
+            <button class="tab-btn" id="fileTabBtn" onclick="switchTab('file')">
+                <i class="fa-solid fa-file-video"></i> Tải Video Lên
+            </button>
+            <button class="tab-btn" id="manageTabBtn" onclick="switchTab('manage')">
+                <i class="fa-solid fa-users-gear"></i> Quản Lý Dữ Liệu Khuôn Mặt
+            </button>
+        </div>
+    </div>
 
-            <!-- TAB 1: LIVE CAMERA -->
+    <div id="viewSection" class="dashboard-grid">
+        <div class="card">
             <div id="camTab" class="tab-content active">
-                <div style="display: flex; gap: 10px; margin-bottom: 14px; align-items: center; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <label style="font-weight: 500; font-size: 0.875rem; color: var(--text-sub); white-space: nowrap;">Nguồn Cam:</label>
-                    <select id="camSourceSelect" class="input-control" style="width: 180px; padding: 8px 12px;" onchange="toggleIpInput()">
+                <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px;">
+                    <select id="camSourceSelect" class="input-control" style="width: 180px;" onchange="toggleIpInput()">
                         <option value="webcam">Webcam Máy Tính</option>
                         <option value="iphone">iPhone (DroidCam)</option>
                     </select>
-
-                    <input type="text" id="iphoneIpInput" placeholder="IP iPhone (VD: 192.168.1.15)" class="input-control" style="width: 220px; padding: 8px 12px; display: none;">
-
-                    <button type="button" class="btn btn-primary" style="margin-left: auto;" onclick="changeCameraSource()">
-                        <i class="fa-solid fa-sync"></i> Kết Nối
-                    </button>
+                    <input type="text" id="iphoneIpInput" placeholder="IP iPhone (VD: 192.168.1.15)" class="input-control" style="width: 220px; display: none;">
+                    <button type="button" class="btn btn-primary" onclick="changeCameraSource()"><i class="fa-solid fa-sync"></i> Kết Nối</button>
                 </div>
             </div>
 
-            <!-- TAB 2: TẢI VIDEO LÊN -->
             <div id="fileTab" class="tab-content">
-                <form id="uploadVideoForm" class="form-group">
-                    <label><i class="fa-solid fa-upload"></i> Chọn file video phân tích (MP4, AVI, MOV):</label>
-                    <input type="file" id="videoFileInput" accept="video/*" class="input-control" required style="margin-bottom: 12px;">
-                    <button type="submit" class="btn btn-primary btn-full">
-                        <i class="fa-solid fa-microchip"></i> Phát Video & Phân Tích AI Realtime
-                    </button>
+                <form id="uploadVideoForm" class="form-group" style="margin-bottom: 12px;">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="file" id="videoFileInput" accept="video/*" class="input-control" required>
+                        <button type="submit" class="btn btn-primary" style="white-space: nowrap;"><i class="fa-solid fa-microchip"></i> Phân Tích AI Video</button>
+                    </div>
                 </form>
-
-                <div id="videoMsg" class="msg-box"></div>
             </div>
 
-            <!-- KHUNG HIỂN THỊ MÀN HÌNH AI STREAM -->
             <div class="media-container">
-                <img id="cameraStream" src="/video_feed?source=webcam" alt="Live AI Stream">
+                <img id="cameraStream" src="/video_feed?source=webcam" alt="Stream đã tắt">
             </div>
 
-            <!-- THANH ĐIỀU KHIỂN BẬT / TẮT / DỪNG VIDEO -->
             <div class="stream-controls">
-                <button type="button" id="pauseBtn" class="btn btn-warning" onclick="togglePause()">
-                    <i class="fa-solid fa-pause"></i> Tạm Dừng
-                </button>
-                <button type="button" id="stopBtn" class="btn btn-danger" onclick="stopStream()">
-                    <i class="fa-solid fa-power-off"></i> Tắt Video / Cam
-                </button>
+                <button type="button" id="pauseBtn" class="btn btn-warning" onclick="togglePause()"><i class="fa-solid fa-pause"></i> Tạm Dừng</button>
+                <button type="button" id="stopBtn" class="btn btn-danger" onclick="stopStream()"><i class="fa-solid fa-power-off"></i> Tắt Video / Cam</button>
             </div>
         </div>
 
-        <!-- Cột Phải: Đăng Ký Khuôn Mặt -->
         <div class="card">
-            <h2 style="font-size: 1.1rem; margin-bottom: 16px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-user-plus"></i> Đăng Ký Khuôn Mặt
-            </h2>
+            <h2 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 12px;"><i class="fa-solid fa-list-check"></i> Nhật Ký Phát Hiện Realtime</h2>
+            <div class="log-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tên Người</th>
+                            <th>Độ Tin Cậy</th>
+                            <th>Thời Gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        <tr><td colspan="3" style="text-align: center; color: var(--text-sub);">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-            <form id="registerForm">
-                <div class="form-group">
-                    <label for="personName">Họ và Tên / Nhãn:</label>
-                    <input type="text" id="personName" placeholder="Ví dụ: Nguyen Van A" class="input-control" required>
-                </div>
+    <div id="manageTab" class="tab-content card">
+        <h2 style="font-size: 1.2rem; color: var(--primary); margin-bottom: 16px;"><i class="fa-solid fa-user-plus"></i> Đăng Ký Người Dùng Mới</h2>
+        <form id="registerForm" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 24px;">
+            <div>
+                <label style="font-size: 0.85rem; color: var(--text-sub);">Họ và Tên:</label>
+                <input type="text" id="personName" placeholder="Nhập tên người dùng" class="input-control" required>
+            </div>
+            <div>
+                <label style="font-size: 0.85rem; color: var(--text-sub);">Chọn Ảnh mẫu (Chọn 1 hoặc nhiều ảnh):</label>
+                <input type="file" id="faceImageInput" accept="image/*" multiple class="input-control" required>
+            </div>
+            <button type="submit" class="btn btn-success" style="padding: 11px 16px;"><i class="fa-solid fa-floppy-disk"></i> Lưu Mới</button>
+        </form>
 
-                <div class="form-group">
-                    <label>Ảnh khuôn mặt mẫu:</label>
-                    <input type="file" id="faceImageInput" accept="image/*" class="input-control" required onchange="previewImage(event)">
+        <hr style="border-color: var(--border-color); margin-bottom: 20px;">
 
-                    <div class="preview-box" id="previewContainer">
-                        <i class="fa-solid fa-image fa-2x"></i>
-                    </div>
-                </div>
+        <h2 style="font-size: 1.2rem; color: var(--primary);"><i class="fa-solid fa-users"></i> Danh Sách Người Đã Lưu</h2>
+        <div id="personCardGrid" class="person-grid"></div>
+    </div>
 
-                <button type="submit" class="btn btn-success btn-full">
-                    <i class="fa-solid fa-floppy-disk"></i> Lưu Vào Cơ Sở Dữ Liệu
-                </button>
-            </form>
-
-            <div id="registerMsg" class="msg-box"></div>
+    <div id="sampleModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle" style="color: var(--primary); margin-bottom: 14px;">Quản Lý Mẫu Ảnh</h3>
+            <div id="sampleList" style="max-height: 350px; overflow-y: auto; margin-bottom: 16px;"></div>
+            <button class="btn btn-primary btn-full" onclick="closeModal()">Đóng</button>
         </div>
     </div>
 
     <script>
         let currentSource = 'webcam';
         let isPausedState = false;
-        let isStreamActive = true;
+        let currentPersonIdForModal = null;
+        let currentPersonNameForModal = '';
 
         function switchTab(type) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-            if (type === 'cam') {
-                document.getElementById('camTabBtn').classList.add('active');
-                document.getElementById('camTab').classList.add('active');
-                changeCameraSource();
-            } else {
-                document.getElementById('fileTabBtn').classList.add('active');
-                document.getElementById('fileTab').classList.add('active');
+            if (type === 'cam' || type === 'file') {
+                document.getElementById('viewSection').style.display = 'grid';
+                document.getElementById('manageTab').classList.remove('active');
+
+                if (type === 'cam') {
+                    document.getElementById('camTabBtn').classList.add('active');
+                    document.getElementById('camTab').classList.add('active');
+                    changeCameraSource();
+                } else {
+                    document.getElementById('fileTabBtn').classList.add('active');
+                    document.getElementById('fileTab').classList.add('active');
+                    stopStream();
+                }
+            } else if (type === 'manage') {
+                document.getElementById('viewSection').style.display = 'none';
+                document.getElementById('manageTabBtn').classList.add('active');
+                document.getElementById('manageTab').classList.add('active');
+                stopStream();
+                loadPersons();
             }
-        }
-
-        function toggleIpInput() {
-            const source = document.getElementById('camSourceSelect').value;
-            const ipInput = document.getElementById('iphoneIpInput');
-            ipInput.style.display = (source === 'iphone') ? 'block' : 'none';
-        }
-
-        function startStream(source, ip = "") {
-            const streamImg = document.getElementById('cameraStream');
-            const stopBtn = document.getElementById('stopBtn');
-
-            const timestamp = new Date().getTime();
-            streamImg.src = `/video_feed?source=${source}&ip=${encodeURIComponent(ip)}&t=${timestamp}`;
-
-            isStreamActive = true;
-            stopBtn.innerHTML = `<i class="fa-solid fa-power-off"></i> Tắt Video / Cam`;
-            stopBtn.className = "btn btn-danger";
         }
 
         function stopStream() {
             const streamImg = document.getElementById('cameraStream');
-            const stopBtn = document.getElementById('stopBtn');
+            streamImg.src = "";
+            fetch('/api/control_stream?action=stop', { method: 'POST' });
+        }
 
-            if (isStreamActive) {
-                streamImg.src = "";
-                isStreamActive = false;
-                stopBtn.innerHTML = `<i class="fa-solid fa-play"></i> Bật Lại Video / Cam`;
-                stopBtn.className = "btn btn-success";
-            } else {
-                const ip = document.getElementById('iphoneIpInput').value.trim();
-                startStream(currentSource, ip);
-            }
+        function toggleIpInput() {
+            const source = document.getElementById('camSourceSelect').value;
+            document.getElementById('iphoneIpInput').style.display = (source === 'iphone') ? 'block' : 'none';
         }
 
         function changeCameraSource() {
             const source = document.getElementById('camSourceSelect').value;
             const ip = document.getElementById('iphoneIpInput').value.trim();
-            if (source === 'iphone' && !ip) {
-                alert('Vui lòng nhập địa chỉ IP iPhone!');
-                return;
-            }
+            if (source === 'iphone' && !ip) return alert('Vui lòng nhập IP iPhone!');
 
             currentSource = source;
-            resetPauseState();
-            startStream(source, ip);
+            const streamImg = document.getElementById('cameraStream');
+            streamImg.src = `/video_feed?source=${source}&ip=${encodeURIComponent(ip)}&t=${new Date().getTime()}`;
         }
 
         async function togglePause() {
-            const pauseBtn = document.getElementById('pauseBtn');
             const action = isPausedState ? "resume" : "pause";
+            await fetch(`/api/control_stream?action=${action}`, { method: 'POST' });
+            isPausedState = !isPausedState;
+            document.getElementById('pauseBtn').innerHTML = isPausedState ? `<i class="fa-solid fa-play"></i> Tiếp Tục` : `<i class="fa-solid fa-pause"></i> Tạm Dừng`;
+        }
+
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/logs');
+                const data = await res.json();
+                const tbody = document.getElementById('logTableBody');
+                if (data.logs && data.logs.length > 0) {
+                    tbody.innerHTML = data.logs.map(log => `
+                        <tr>
+                            <td style="color: var(--primary); font-weight: 600;">${log.name}</td>
+                            <td>${log.confidence}</td>
+                            <td style="color: var(--text-sub);">${log.time}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">Chưa có nhật ký phát hiện</td></tr>`;
+                }
+            } catch (e) {}
+        }, 1000);
+
+        async function loadPersons() {
+            const res = await fetch('/api/persons');
+            const data = await res.json();
+            const grid = document.getElementById('personCardGrid');
+
+            if (!data.persons || data.persons.length === 0) {
+                grid.innerHTML = `<p style="color: var(--text-sub);">Chưa có dữ liệu khuôn mặt nào.</p>`;
+                return;
+            }
+
+            grid.innerHTML = data.persons.map(p => `
+                <div class="person-card">
+                    <div class="person-info">
+                        <h3>${p.name}</h3>
+                        <p>Số mẫu ảnh: <b style="color: var(--primary);">${p.sample_count}</b></p>
+                    </div>
+
+                    <input type="file" id="addMoreInput_${p.id}" accept="image/*" multiple style="display: none;" onchange="uploadMoreImages(${p.id}, '${p.name}')">
+
+                    <div class="person-actions">
+                        <button class="btn btn-success" onclick="document.getElementById('addMoreInput_${p.id}').click()">
+                            <i class="fa-solid fa-plus"></i> Thêm ảnh
+                        </button>
+                        <button class="btn btn-warning" onclick="openManageModal(${p.id}, '${p.name}')">
+                            <i class="fa-solid fa-images"></i> Xóa ảnh mẫu
+                        </button>
+                        <button class="btn btn-primary" onclick="renamePerson(${p.id}, '${p.name}')">
+                            <i class="fa-solid fa-pen"></i> Sửa
+                        </button>
+                        <button class="btn btn-danger" onclick="deletePerson(${p.id})">
+                            <i class="fa-solid fa-trash"></i> Xóa
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function openManageModal(personId, personName) {
+            currentPersonIdForModal = personId;
+            if (personName) {
+                currentPersonNameForModal = personName;
+            }
+            document.getElementById('modalTitle').innerText = `Danh sách ảnh mẫu của: ${currentPersonNameForModal}`;
+            document.getElementById('sampleModal').style.display = 'flex';
+
+            const listContainer = document.getElementById('sampleList');
+            listContainer.innerHTML = `<p style="color: var(--text-sub); text-align: center;">Đang tải dữ liệu...</p>`;
 
             try {
-                await fetch(`/api/control_stream?action=${action}`, { method: 'POST' });
-                isPausedState = !isPausedState;
+                const res = await fetch(`/api/person_embeddings?person_id=${personId}`);
+                if (!res.ok) {
+                    throw new Error(`Mã lỗi HTTP: ${res.status}`);
+                }
 
-                if (isPausedState) {
-                    pauseBtn.innerHTML = `<i class="fa-solid fa-play"></i> Tiếp Tục`;
-                    pauseBtn.className = "btn btn-primary";
+                const data = await res.json();
+                const samples = data.embeddings || [];
+
+                if (samples.length === 0) {
+                    listContainer.innerHTML = `<p style="color: var(--text-sub); text-align: center;">Không có mẫu ảnh nào trong DB.</p>`;
                 } else {
-                    pauseBtn.innerHTML = `<i class="fa-solid fa-pause"></i> Tạm Dừng`;
-                    pauseBtn.className = "btn btn-warning";
+                    listContainer.innerHTML = samples.map((item, index) => {
+                        const imgSrc = item.image_path ? `/${item.image_path}` : '';
+                        const imgHtml = imgSrc
+                            ? `<img src="${imgSrc}" class="sample-thumb" alt="Mẫu ${index + 1}">`
+                            : `<div class="sample-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-sub);"><i class="fa-solid fa-image"></i></div>`;
+
+                        return `
+                            <div class="sample-item">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    ${imgHtml}
+                                    <span style="font-size: 0.9rem; font-weight: 500;">Mẫu ảnh #${index + 1}</span>
+                                </div>
+                                <button class="btn btn-danger" onclick="deleteSingleSample(${item.id})">
+                                    <i class="fa-solid fa-trash"></i> Xóa
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
                 }
             } catch (err) {
-                console.error("Lỗi điều khiển luồng:", err);
+                console.error("Lỗi:", err);
+                listContainer.innerHTML = `<p style="color: var(--danger); text-align: center;">${err.message}</p>`;
             }
         }
 
-        function resetPauseState() {
-            isPausedState = false;
-            const pauseBtn = document.getElementById('pauseBtn');
-            pauseBtn.innerHTML = `<i class="fa-solid fa-pause"></i> Tạm Dừng`;
-            pauseBtn.className = "btn btn-warning";
-            fetch('/api/control_stream?action=resume', { method: 'POST' });
+        async function deleteSingleSample(embeddingId) {
+            if (confirm("Bạn có chắc muốn xóa mẫu ảnh này?")) {
+                const res = await fetch(`/api/embeddings/${embeddingId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    openManageModal(currentPersonIdForModal, null);
+                    loadPersons();
+                } else {
+                    alert("Xóa thất bại!");
+                }
+            }
         }
 
-        function previewImage(event) {
-            const container = document.getElementById('previewContainer');
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    container.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                }
-                reader.readAsDataURL(file);
+        function closeModal() {
+            document.getElementById('sampleModal').style.display = 'none';
+        }
+
+        async function uploadMoreImages(personId, personName) {
+            const input = document.getElementById(`addMoreInput_${personId}`);
+            if (!input.files || input.files.length === 0) return;
+
+            const formData = new FormData();
+            formData.append('name', personName);
+            for (let i = 0; i < input.files.length; i++) {
+                formData.append('files', input.files[i]);
+            }
+
+            const res = await fetch('/api/register', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            loadPersons();
+        }
+
+        async function renamePerson(id, oldName) {
+            const newName = prompt("Nhập tên mới:", oldName);
+            if (newName && newName !== oldName) {
+                const formData = new FormData();
+                formData.append('person_id', id);
+                formData.append('new_name', newName);
+                await fetch('/api/persons/rename', { method: 'PUT', body: formData });
+                loadPersons();
+            }
+        }
+
+        async function deletePerson(id) {
+            if (confirm("Xóa hoàn toàn người này khỏi hệ thống?")) {
+                await fetch(`/api/persons/${id}`, { method: 'DELETE' });
+                loadPersons();
             }
         }
 
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('personName').value;
-            const fileInput = document.getElementById('faceImageInput');
-            const msgBox = document.getElementById('registerMsg');
+            const files = document.getElementById('faceImageInput').files;
 
             const formData = new FormData();
             formData.append('name', name);
-            formData.append('file', fileInput.files[0]);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
 
-            msgBox.className = "msg-box show msg-info";
-            msgBox.innerText = "Đang trích xuất đặc trưng khuôn mặt...";
-
-            try {
-                const res = await fetch('/api/register', { method: 'POST', body: formData });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    msgBox.className = "msg-box show msg-success";
-                    msgBox.innerText = data.message;
-                    document.getElementById('registerForm').reset();
-                    document.getElementById('previewContainer').innerHTML = `<i class="fa-solid fa-image fa-2x"></i>`;
-                } else {
-                    msgBox.className = "msg-box show msg-error";
-                    msgBox.innerText = data.message;
-                }
-            } catch (err) {
-                msgBox.className = "msg-box show msg-error";
-                msgBox.innerText = "Lỗi kết nối tới máy chủ!";
+            const res = await fetch('/api/register', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            if (data.status === 'success') {
+                document.getElementById('registerForm').reset();
+                loadPersons();
             }
         });
 
         document.getElementById('uploadVideoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById('videoFileInput');
-            const msgBox = document.getElementById('videoMsg');
-
             if (!fileInput.files[0]) return;
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            msgBox.className = "msg-box show msg-info";
-            msgBox.innerText = "Đang nạp file video...";
-
-            try {
-                const res = await fetch('/api/upload_video', { method: 'POST', body: formData });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    msgBox.className = "msg-box show msg-success";
-                    msgBox.innerText = data.message;
-
-                    currentSource = 'file';
-                    resetPauseState();
-                    startStream('file');
-                } else {
-                    msgBox.className = "msg-box show msg-error";
-                    msgBox.innerText = data.message;
-                }
-            } catch (err) {
-                msgBox.className = "msg-box show msg-error";
-                msgBox.innerText = "Có lỗi xảy ra khi tải file video!";
+            const res = await fetch('/api/upload_video', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.status === 'success') {
+                currentSource = 'file';
+                const streamImg = document.getElementById('cameraStream');
+                streamImg.src = `/video_feed?source=file&t=${new Date().getTime()}`;
             }
         });
     </script>
