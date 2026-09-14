@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Giám Sát & Nhận Diện AI</title>
+    <title>Hệ Thống Giám Sát & Nhận Diện AI Thông Minh</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -19,6 +19,7 @@
             --danger: #ef4444;
             --warning: #f59e0b;
             --border-color: #334155;
+            --card-inner: #0f172a;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -43,11 +44,16 @@
         }
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 12px; }
 
+        .tab-bar { display: flex; gap: 10px; background: #0f172a; padding: 6px; border-radius: 8px; margin-bottom: 16px; }
+        .tab-btn { flex: 1; padding: 10px 16px; border: none; background: transparent; color: var(--text-sub); font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .tab-btn.active { background: var(--primary); color: #0f172a; }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 20px;
             width: 100%;
+            transition: all 0.3s ease;
         }
 
         .card {
@@ -60,16 +66,9 @@
             flex-direction: column;
         }
 
-        .tab-bar { display: flex; gap: 10px; background: #0f172a; padding: 6px; border-radius: 8px; margin-bottom: 16px; }
-        .tab-btn { flex: 1; padding: 10px 16px; border: none; background: transparent; color: var(--text-sub); font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .tab-btn.active { background: var(--primary); color: #0f172a; }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
         .media-container {
             width: 100%;
-            max-height: 520px;
+            height: 480px;
             background: #000;
             border-radius: 8px;
             display: flex;
@@ -80,7 +79,7 @@
         }
         .media-container img {
             max-width: 100%;
-            max-height: 520px;
+            max-height: 480px;
             object-fit: contain;
         }
 
@@ -89,14 +88,15 @@
         .form-group { margin-bottom: 16px; }
         .input-control { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); font-size: 0.95rem; outline: none; }
 
-        .btn { padding: 8px 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.85rem; }
+        .btn { padding: 9px 15px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.88rem; transition: all 0.2s; }
+        .btn:hover { opacity: 0.92; transform: translateY(-1px); }
         .btn-full { width: 100%; padding: 12px; font-size: 0.9rem; }
         .btn-primary { background: var(--primary); color: #0f172a; }
         .btn-success { background: var(--success); color: #0f172a; }
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-warning { background: var(--warning); color: #0f172a; }
 
-        .log-table-wrapper { flex: 1; overflow-y: auto; max-height: 520px; }
+        .log-table-wrapper { flex: 1; overflow-y: auto; max-height: 480px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
         th { background: #0f172a; color: var(--text-sub); position: sticky; top: 0; }
@@ -167,12 +167,453 @@
             border: 1px solid var(--border-color);
             background: #1e293b;
         }
+
+        /* --- STYLES CHO TÍNH NĂNG HIỂN THỊ ẢNH SNAPSHOT TỪNG KHOẢNH KHẮC THEO TỪNG NGƯỜI --- */
+        .progress-box {
+            margin: 12px 0 16px 0;
+            display: none;
+            background: #0f172a;
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.88rem;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 10px;
+            background: #1e293b;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #38bdf8, #22c55e);
+            transition: width 0.3s ease;
+        }
+
+        .galleries-wrapper {
+            max-height: 560px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .galleries-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        .galleries-wrapper::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        /* Khối hiển thị ảnh theo từng người */
+        .person-gallery-card {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+            animation: slideInDown 0.35s ease-out;
+        }
+        .person-gallery-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+        .person-gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .person-gallery-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .person-avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .person-gallery-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+        }
+        .conf-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            white-space: nowrap;
+        }
+        .count-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            white-space: nowrap;
+        }
+
+        /* Nút chuyển đổi chế độ xem Log */
+        .view-switch-btn-group {
+            display: inline-flex;
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .view-toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .view-toggle-btn:hover {
+            color: var(--text-main);
+        }
+        .view-toggle-btn.active {
+            background: var(--primary);
+            color: #0f172a;
+        }
+
+        /* Thanh Filter Pills theo từng người */
+        .log-filter-bar {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            align-items: center;
+        }
+        .log-filter-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .log-filter-bar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 2px;
+        }
+        .filter-pill {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            color: var(--text-sub);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .filter-pill:hover {
+            border-color: var(--primary);
+            color: var(--text-main);
+        }
+        .filter-pill.active {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Khối hiển thị phân nhóm theo từng người trong Live Log */
+        .live-person-card {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+        .live-person-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.3);
+        }
+        .live-person-card.active-presence {
+            border-left: 3px solid var(--success);
+        }
+        .live-person-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .live-person-title-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .live-person-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid var(--border-color);
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .live-person-name {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .live-person-status {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .live-presence-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            display: inline-block;
+            box-shadow: 0 0 6px var(--success);
+            animation: pulse-dot 1.5s infinite;
+        }
+        @keyframes pulse-dot {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.7; }
+        }
+        .live-person-badges {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .live-history-list {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(51, 65, 85, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        .live-history-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .live-history-list::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 2px;
+        }
+        .live-history-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            color: var(--text-sub);
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(30, 41, 59, 0.4);
+        }
+        .live-history-row:hover {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--text-main);
+        }
+
+        /* Dải ảnh cuộn ngang */
+        .moment-strip {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            padding-top: 2px;
+            align-items: flex-start;
+        }
+        .moment-strip::-webkit-scrollbar {
+            height: 6px;
+        }
+        .moment-strip::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        /* Thẻ ảnh chụp khuôn mặt tại mỗi khoảnh khắc */
+        .moment-card {
+            flex-shrink: 0;
+            width: 95px;
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .moment-card:hover {
+            transform: translateY(-4px) scale(1.03);
+            border-color: var(--primary);
+            box-shadow: 0 8px 18px rgba(56, 189, 248, 0.3);
+        }
+        .moment-card.new-pulse {
+            animation: momentPulse 1.2s ease-out;
+        }
+        @keyframes momentPulse {
+            0% { transform: scale(1.15); border-color: var(--primary); box-shadow: 0 0 16px var(--primary); }
+            100% { transform: scale(1); }
+        }
+        .moment-img-wrapper {
+            position: relative;
+            width: 100%;
+            height: 85px;
+            background: #0f172a;
+        }
+        .moment-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .moment-play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.3rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .moment-card:hover .moment-play-overlay {
+            opacity: 1;
+        }
+        .moment-footer {
+            padding: 5px 6px;
+            background: #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .moment-time {
+            color: var(--primary);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .moment-conf {
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        .live-pulse {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: #1e293b;
+            border: 1px solid var(--primary);
+            border-left: 5px solid var(--primary);
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideInRight 0.3s ease-out;
+            pointer-events: auto;
+            font-size: 0.9rem;
+            max-width: 400px;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <header>
         <h1><i class="fa-solid fa-eye"></i> AI Face Detection System</h1>
+        <div style="font-size: 0.85rem; color: var(--text-sub);">
+            <i class="fa-solid fa-shield-halved" style="color: var(--success);"></i> Trạng thái: <b>Đang hoạt động</b>
+        </div>
     </header>
 
     <div class="card" style="margin-bottom: 16px;">
@@ -181,7 +622,7 @@
                 <i class="fa-solid fa-video"></i> Live Camera / IP Cam
             </button>
             <button class="tab-btn" id="fileTabBtn" onclick="switchTab('file')">
-                <i class="fa-solid fa-file-video"></i> Tải Video Lên
+                <i class="fa-solid fa-file-video"></i> Tải Video Lên (Phân Tích AI)
             </button>
             <button class="tab-btn" id="manageTabBtn" onclick="switchTab('manage')">
                 <i class="fa-solid fa-users-gear"></i> Quản Lý Dữ Liệu Khuôn Mặt
@@ -189,26 +630,22 @@
         </div>
     </div>
 
-    <div id="viewSection" class="dashboard-grid">
+    <!-- 1. TAB LIVE CAMERA -->
+    <div id="camSection" class="dashboard-grid">
         <div class="card">
-            <div id="camTab" class="tab-content active">
-                <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; background: #0f172a; padding: 8px; border-radius: 8px;">
-                    <select id="camSourceSelect" class="input-control" style="width: 180px;" onchange="toggleIpInput()">
-                        <option value="webcam">Webcam Máy Tính</option>
-                        <option value="iphone">iPhone (DroidCam)</option>
-                    </select>
-                    <input type="text" id="iphoneIpInput" placeholder="IP iPhone (VD: 192.168.1.15)" class="input-control" style="width: 220px; display: none;">
-                    <button type="button" class="btn btn-primary" onclick="changeCameraSource()"><i class="fa-solid fa-sync"></i> Kết Nối</button>
-                </div>
-            </div>
-
-            <div id="fileTab" class="tab-content">
-                <form id="uploadVideoForm" class="form-group" style="margin-bottom: 12px;">
-                    <div style="display: flex; gap: 10px;">
-                        <input type="file" id="videoFileInput" accept="video/*" class="input-control" required>
-                        <button type="submit" class="btn btn-primary" style="white-space: nowrap;"><i class="fa-solid fa-microchip"></i> Phân Tích AI Video</button>
-                    </div>
-                </form>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: center; background: #0f172a; padding: 10px; border-radius: 8px;">
+                <select id="camSourceSelect" class="input-control" style="width: 220px;" onchange="toggleIpInput()">
+                    <option value="webcam">Webcam Laptop</option>
+                    <option value="iphone">iPhone (Iriun Cam)</option>
+                    <option value="ip_cam">IP Camera / URL khác</option>
+                </select>
+                <input type="text" id="iphoneIpInput" placeholder="IP hoặc URL (VD: 192.168.1.15)" class="input-control" style="width: 230px; display: none;">
+                <button type="button" class="btn btn-primary" onclick="changeCameraSource()"><i class="fa-solid fa-sync"></i> Kết Nối</button>
+                
+                <!-- Nút bật/tắt Auto-Zoom thông minh -->
+                <button type="button" id="autoZoomBtn" class="btn" onclick="toggleAutoZoom()" style="background: #1e293b; color: var(--text-main); border: 1px solid var(--border-color); margin-left: auto;">
+                    <i class="fa-solid fa-expand"></i> Auto-Zoom: <b id="autoZoomText" style="color: var(--text-sub);">TẮT</b>
+                </button>
             </div>
 
             <div class="media-container">
@@ -221,9 +658,42 @@
             </div>
         </div>
 
-        <div class="card">
-            <h2 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 12px;"><i class="fa-solid fa-list-check"></i> Nhật Ký Phát Hiện Realtime</h2>
-            <div class="log-table-wrapper">
+        <div class="card" style="display: flex; flex-direction: column;">
+            <!-- Tiêu đề & Điều khiển Chế độ xem & Nút Xóa -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <h2 style="font-size: 1.05rem; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span class="live-pulse"></span> Nhật Ký Phát Hiện Realtime
+                </h2>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <div class="view-switch-btn-group">
+                        <button type="button" id="btnViewGrouped" class="view-toggle-btn active" onclick="setLogViewMode('grouped')" title="Xem danh sách phân chia theo từng người (chống chồng chéo)">
+                            <i class="fa-solid fa-users"></i> Từng Người
+                        </button>
+                        <button type="button" id="btnViewTimeline" class="view-toggle-btn" onclick="setLogViewMode('timeline')" title="Xem theo dòng thời gian">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Dòng Thời Gian
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-danger" onclick="clearLiveLogs()" style="padding: 5px 9px; font-size: 0.78rem;" title="Xóa toàn bộ lịch sử nhật ký">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh Filter Pills theo từng người -->
+            <div id="logFilterPills" class="log-filter-bar">
+                <button type="button" class="filter-pill active" data-person="all" onclick="filterLogsByPerson('all')">Tất Cả</button>
+            </div>
+
+            <!-- Chế độ 1: Danh Sách Phân Chia Theo Từng Người (Chống Chồng Chéo) -->
+            <div id="logGroupedContainer" style="flex: 1; overflow-y: auto; max-height: 480px; padding-right: 2px;">
+                <div id="emptyLiveLogMsg" style="text-align: center; color: var(--text-sub); padding: 40px 10px;">
+                    <i class="fa-solid fa-user-clock" style="font-size: 2.2rem; opacity: 0.4; margin-bottom: 8px; display: block; color: var(--primary);"></i>
+                    Chưa có nhật ký phát hiện nào
+                </div>
+            </div>
+
+            <!-- Chế độ 2: Dòng Thời Gian (Bảng Truyền Thống) -->
+            <div id="logTimelineContainer" class="log-table-wrapper" style="display: none;">
                 <table>
                     <thead>
                         <tr>
@@ -233,14 +703,92 @@
                         </tr>
                     </thead>
                     <tbody id="logTableBody">
-                        <tr><td colspan="3" style="text-align: center; color: var(--text-sub);">Đang tải dữ liệu...</td></tr>
+                        <tr><td colspan="3" style="text-align: center; color: var(--text-sub);">Chưa có nhật ký phát hiện</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="manageTab" class="tab-content card">
+    <!-- 2. TAB PHÂN TÍCH VIDEO UPLOAD (HIỂN THỊ TRỰC TIẾP ẢNH SNAPSHOT TỪNG KHOẢNH KHẮC THEO TỪNG NGƯỜI + NÚT BẬT/TẮT XEM VIDEO) -->
+    <div id="videoSection" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
+        <!-- Hàng điều khiển Upload + Tùy chọn Ẩn/Hiện Video -->
+        <div class="card" style="padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <form id="analyzeVideoForm" style="display: flex; gap: 10px; flex: 1; min-width: 320px;" onsubmit="startVideoAnalysis(event)">
+                    <input type="file" id="videoFileInput" accept="video/*" class="input-control" required style="flex: 1;">
+                    <button type="submit" id="analyzeBtn" class="btn btn-primary" style="white-space: nowrap; padding: 10px 18px;">
+                        <i class="fa-solid fa-microchip"></i> Bắt Đầu Phân Tích AI
+                    </button>
+                </form>
+
+                <!-- Nút chuyển đổi Muốn Xem hoặc Không Muốn Xem Video để tiết kiệm diện tích -->
+                <button type="button" id="toggleVideoBtn" class="btn" onclick="toggleVideoPlayer()" style="background: #0f172a; border: 1px solid var(--primary); color: var(--text-main); padding: 10px 18px;">
+                    <i class="fa-solid fa-video"></i> Trình Phát Video: <b id="toggleVideoText" style="color: var(--primary);">BẬT</b>
+                </button>
+            </div>
+
+            <!-- Hộp tiến trình phân tích -->
+            <div id="videoProgressBox" class="progress-box">
+                <div class="progress-header">
+                    <span id="videoProgressText" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Đang chuẩn bị phân tích...</span>
+                    <span id="videoProgressPercent" style="font-weight: 700; color: var(--success);">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="videoProgressBar" class="progress-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung Nội Dung Chính: Gồm Video Player (có thể ẩn) và Dải Ảnh Snapshot Từng Người -->
+        <div id="videoMainContainer" class="dashboard-grid" style="grid-template-columns: 1fr 1.35fr; gap: 20px;">
+            <!-- Khung Trình Phát Video (có thể ẩn đi để tiết kiệm diện tích) -->
+            <div id="videoPlayerCard" class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h2 style="font-size: 1.05rem; color: var(--primary);"><i class="fa-solid fa-film"></i> Trình Phát Video Gốc</h2>
+                    <button type="button" class="btn btn-danger" onclick="toggleVideoPlayer(false)" style="padding: 4px 8px; font-size: 0.75rem;" title="Thu nhỏ video để mở rộng không gian xem ảnh">
+                        <i class="fa-solid fa-eye-slash"></i> Thu gọn
+                    </button>
+                </div>
+                <div class="media-container" style="background: #000; height: 420px;">
+                    <video id="html5VideoPlayer" controls playsinline style="width: 100%; height: 100%; object-fit: contain;">
+                        Trình duyệt không hỗ trợ video HTML5.
+                    </video>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.82rem; color: var(--text-sub); text-align: center;">
+                    <i class="fa-solid fa-circle-info"></i> Video chuẩn 60FPS. <b>Nhấp vào bất kỳ ảnh nào bên phải</b> để video tự động nhảy tới khoảnh khắc đó!
+                </div>
+            </div>
+
+            <!-- Khung Dải Ảnh Khoảnh Khắc Phát Hiện Theo Từng Người -->
+            <div id="videoResultsCard" class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                    <h2 style="font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                        <span class="live-pulse"></span> Khoảnh Khắc Phát Hiện Theo Từng Người
+                    </h2>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span id="totalPeopleBadge" style="background: #0f172a; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--primary); font-weight: 600;">
+                            0 người
+                        </span>
+                        <span id="detectedCountBadge" style="background: #0f172a; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--text-sub);">
+                            0 ảnh phát hiện
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Danh sách khối ảnh theo từng người -->
+                <div class="galleries-wrapper" id="personGalleriesContainer">
+                    <div id="emptyTableMsg" style="text-align: center; color: var(--text-sub); padding: 50px 15px;">
+                        <i class="fa-solid fa-images" style="font-size: 2.6rem; margin-bottom: 12px; display: block; opacity: 0.4; color: var(--primary);"></i>
+                        Chưa có phát hiện nào. Khi AI quét video, mỗi người tìm thấy sẽ hiển thị <b>ảnh chụp khuôn mặt thực tế</b> tại từng giây xuất hiện, không chồng lấn!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TAB QUẢN LÝ DỮ LIỆU KHUÔN MẶT -->
+    <div id="manageSection" class="tab-content card" style="display: none;">
         <h2 style="font-size: 1.2rem; color: var(--primary); margin-bottom: 16px;"><i class="fa-solid fa-user-plus"></i> Đăng Ký Người Dùng Mới</h2>
         <form id="registerForm" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 24px;">
             <div>
@@ -260,6 +808,7 @@
         <div id="personCardGrid" class="person-grid"></div>
     </div>
 
+    <!-- MODAL QUẢN LÝ MẪU ẢNH -->
     <div id="sampleModal" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modalTitle" style="color: var(--primary); margin-bottom: 14px;">Quản Lý Mẫu Ảnh</h3>
@@ -268,36 +817,77 @@
         </div>
     </div>
 
+    <!-- MODAL PHÓNG TO ẢNH CHÂN DUNG SNAPSHOT -->
+    <div id="photoModal" class="modal-overlay" onclick="closePhotoModal()">
+        <div class="modal-content" style="width: auto; max-width: 480px; text-align: center; background: #0f172a; padding: 16px;" onclick="event.stopPropagation()">
+            <h3 id="photoModalTitle" style="color: var(--primary); margin-bottom: 10px; font-size: 1.05rem;">Ảnh Chân Dung Phát Hiện</h3>
+            <img id="photoModalImg" src="" alt="Snapshot" style="max-width: 100%; max-height: 380px; border-radius: 8px; border: 2px solid var(--primary);">
+            <div id="photoModalMeta" style="margin-top: 10px; font-size: 0.88rem; color: var(--text-sub);"></div>
+            <button class="btn btn-primary btn-full" style="margin-top: 14px;" onclick="closePhotoModal()">Đóng</button>
+        </div>
+    </div>
+
     <script>
         let currentSource = 'webcam';
         let isPausedState = false;
+        let autoZoomEnabled = false;
+        let isVideoPlayerVisible = true;
         let currentPersonIdForModal = null;
         let currentPersonNameForModal = '';
 
+        let currentJobId = null;
+        let pollInterval = null;
+        let lastDetectionId = 0;
+
+        // Dữ liệu gom nhóm: person_name -> { name, maxConf, count, appearances: [{ sec, str, snap, conf }] }
+        let detectedPersonsMap = {};
+
+        // Chuyển đổi giữa các Tab
         function switchTab(type) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-            if (type === 'cam' || type === 'file') {
-                document.getElementById('viewSection').style.display = 'grid';
-                document.getElementById('manageTab').classList.remove('active');
+            document.getElementById('camSection').style.display = 'none';
+            document.getElementById('videoSection').style.display = 'none';
+            document.getElementById('manageSection').style.display = 'none';
 
-                if (type === 'cam') {
-                    document.getElementById('camTabBtn').classList.add('active');
-                    document.getElementById('camTab').classList.add('active');
-                    changeCameraSource();
-                } else {
-                    document.getElementById('fileTabBtn').classList.add('active');
-                    document.getElementById('fileTab').classList.add('active');
-                    stopStream();
-                }
+            if (type === 'cam') {
+                document.getElementById('camTabBtn').classList.add('active');
+                document.getElementById('camSection').style.display = 'grid';
+                changeCameraSource();
+            } else if (type === 'file') {
+                document.getElementById('fileTabBtn').classList.add('active');
+                document.getElementById('videoSection').style.display = 'flex';
+                stopStream();
             } else if (type === 'manage') {
-                document.getElementById('viewSection').style.display = 'none';
                 document.getElementById('manageTabBtn').classList.add('active');
-                document.getElementById('manageTab').classList.add('active');
+                document.getElementById('manageSection').style.display = 'block';
                 stopStream();
                 loadPersons();
             }
+        }
+
+        // --- PHẦN 1: LIVE CAMERA & AUTO-ZOOM ---
+
+        function toggleAutoZoom() {
+            autoZoomEnabled = !autoZoomEnabled;
+            const btn = document.getElementById('autoZoomBtn');
+            const txt = document.getElementById('autoZoomText');
+            if (autoZoomEnabled) {
+                btn.style.borderColor = 'var(--primary)';
+                btn.style.background = '#0284c7';
+                btn.style.color = '#fff';
+                txt.innerText = 'BẬT (Phòng học)';
+                txt.style.color = '#fff';
+                showToast('🔍 Đã BẬT Auto-Zoom: Tự động phóng to người ở xa và thu nhỏ về toàn cảnh khi vắng người');
+            } else {
+                btn.style.borderColor = 'var(--border-color)';
+                btn.style.background = '#1e293b';
+                btn.style.color = 'var(--text-main)';
+                txt.innerText = 'TẮT';
+                txt.style.color = 'var(--text-sub)';
+                showToast('Đã TẮT Auto-Zoom: Hiển thị toàn cảnh góc rộng');
+            }
+            changeCameraSource();
         }
 
         function stopStream() {
@@ -308,17 +898,17 @@
 
         function toggleIpInput() {
             const source = document.getElementById('camSourceSelect').value;
-            document.getElementById('iphoneIpInput').style.display = (source === 'iphone') ? 'block' : 'none';
+            document.getElementById('iphoneIpInput').style.display = (source === 'ip_cam') ? 'block' : 'none';
         }
 
         function changeCameraSource() {
             const source = document.getElementById('camSourceSelect').value;
             const ip = document.getElementById('iphoneIpInput').value.trim();
-            if (source === 'iphone' && !ip) return alert('Vui lòng nhập IP iPhone!');
+            if (source === 'ip_cam' && !ip) return alert('Vui lòng nhập IP hoặc URL Camera!');
 
             currentSource = source;
             const streamImg = document.getElementById('cameraStream');
-            streamImg.src = `/video_feed?source=${source}&ip=${encodeURIComponent(ip)}&t=${new Date().getTime()}`;
+            streamImg.src = `/video_feed?source=${source}&ip=${encodeURIComponent(ip)}&auto_zoom=${autoZoomEnabled}&t=${new Date().getTime()}`;
         }
 
         async function togglePause() {
@@ -328,24 +918,487 @@
             document.getElementById('pauseBtn').innerHTML = isPausedState ? `<i class="fa-solid fa-play"></i> Tiếp Tục` : `<i class="fa-solid fa-pause"></i> Tạm Dừng`;
         }
 
-        setInterval(async () => {
-            try {
-                const res = await fetch('/api/logs');
-                const data = await res.json();
-                const tbody = document.getElementById('logTableBody');
-                if (data.logs && data.logs.length > 0) {
-                    tbody.innerHTML = data.logs.map(log => `
-                        <tr>
-                            <td style="color: var(--primary); font-weight: 600;">${log.name}</td>
-                            <td>${log.confidence}</td>
-                            <td style="color: var(--text-sub);">${log.time}</td>
-                        </tr>
-                    `).join('');
+        // --- QUẢN LÝ NHẬT KÝ CAMERA REALTIME (CHIA THEO TỪNG NGƯỜI CHỐNG CHỒNG CHÉO) ---
+        let currentLogViewMode = 'grouped'; // 'grouped' hoặc 'timeline'
+        let currentLogPersonFilter = 'all';
+
+        function setLogViewMode(mode) {
+            currentLogViewMode = mode;
+            const btnGrouped = document.getElementById('btnViewGrouped');
+            const btnTimeline = document.getElementById('btnViewTimeline');
+            const grpBox = document.getElementById('logGroupedContainer');
+            const timeBox = document.getElementById('logTimelineContainer');
+            if (btnGrouped && btnTimeline) {
+                btnGrouped.classList.toggle('active', mode === 'grouped');
+                btnTimeline.classList.toggle('active', mode === 'timeline');
+            }
+            if (grpBox && timeBox) {
+                grpBox.style.display = (mode === 'grouped') ? 'block' : 'none';
+                timeBox.style.display = (mode === 'timeline') ? 'block' : 'none';
+            }
+        }
+
+        function filterLogsByPerson(name) {
+            currentLogPersonFilter = name;
+            document.querySelectorAll('#logFilterPills .filter-pill').forEach(btn => {
+                if (btn.getAttribute('data-person') === name) {
+                    btn.classList.add('active');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">Chưa có nhật ký phát hiện</td></tr>`;
+                    btn.classList.remove('active');
                 }
-            } catch (e) {}
-        }, 1000);
+            });
+            fetchAndRenderLogs();
+        }
+
+        async function clearLiveLogs() {
+            if (!confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử nhật ký camera hiện tại?")) return;
+            try {
+                const res = await fetch('/api/logs', { method: 'DELETE' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentLogPersonFilter = 'all';
+                    fetchAndRenderLogs();
+                }
+            } catch (e) {
+                alert("Lỗi khi xóa nhật ký: " + e.message);
+            }
+        }
+
+        async function fetchAndRenderLogs() {
+            if (document.getElementById('camSection').style.display === 'none') return;
+
+            try {
+                const url = currentLogPersonFilter && currentLogPersonFilter !== 'all' 
+                    ? `/api/logs?person=${encodeURIComponent(currentLogPersonFilter)}` 
+                    : '/api/logs';
+                const res = await fetch(url);
+                const data = await res.json();
+
+                const people = data.people_groups || [];
+                const logs = data.logs || [];
+
+                // 1. Cập nhật thanh Filter Pills
+                const pillsContainer = document.getElementById('logFilterPills');
+                if (pillsContainer) {
+                    const totalAllCount = people.reduce((acc, p) => acc + (p.total_count || 0), 0);
+                    let pillsHtml = `
+                        <button type="button" class="filter-pill ${currentLogPersonFilter === 'all' ? 'active' : ''}" data-person="all" onclick="filterLogsByPerson('all')">
+                            Tất Cả (${totalAllCount})
+                        </button>
+                    `;
+                    people.forEach(p => {
+                        const isActive = currentLogPersonFilter === p.name ? 'active' : '';
+                        pillsHtml += `
+                            <button type="button" class="filter-pill ${isActive}" data-person="${p.name}" onclick="filterLogsByPerson('${p.name}')">
+                                <i class="fa-solid fa-user"></i> ${p.name} (${p.total_count})
+                            </button>
+                        `;
+                    });
+                    pillsContainer.innerHTML = pillsHtml;
+                }
+
+                // 2. Cập nhật Chế độ 1: Danh sách nhóm theo từng người
+                const groupedContainer = document.getElementById('logGroupedContainer');
+                if (groupedContainer) {
+                    let displayPeople = people;
+                    if (currentLogPersonFilter !== 'all') {
+                        displayPeople = people.filter(p => p.name === currentLogPersonFilter);
+                    }
+
+                    if (displayPeople.length === 0) {
+                        groupedContainer.innerHTML = `
+                            <div style="text-align: center; color: var(--text-sub); padding: 40px 10px;">
+                                <i class="fa-solid fa-user-clock" style="font-size: 2.2rem; opacity: 0.4; margin-bottom: 8px; display: block; color: var(--primary);"></i>
+                                Chưa có phát hiện nào
+                            </div>
+                        `;
+                    } else {
+                        const nowTime = new Date().getTime();
+                        groupedContainer.innerHTML = displayPeople.map(p => {
+                            let isPresent = false;
+                            if (p.last_detected_at) {
+                                const lastDt = new Date(p.last_detected_at.replace(' ', 'T')).getTime();
+                                if (!isNaN(lastDt) && (nowTime - lastDt) < 12000) {
+                                    isPresent = true;
+                                }
+                            }
+
+                            const statusHtml = isPresent
+                                ? `<span class="live-presence-dot"></span> <span style="color: var(--success); font-weight: 600;">Đang có mặt</span>`
+                                : `<i class="fa-regular fa-clock"></i> Lần cuối: ${p.last_seen || ''}`;
+
+                            const avatarHtml = p.avatar
+                                ? `<img src="/${p.avatar}" class="live-person-avatar" alt="${p.name}">`
+                                : `<div class="live-person-avatar">${p.name.charAt(0).toUpperCase()}</div>`;
+
+                            const historyRowsHtml = (p.recent_logs || []).map(r => `
+                                <div class="live-history-row">
+                                    <span><i class="fa-regular fa-circle-dot" style="font-size: 0.65rem; color: var(--primary); margin-right: 4px;"></i> ${r.time}</span>
+                                    <span style="font-weight: 600; color: var(--text-main);">${r.confidence}</span>
+                                </div>
+                            `).join('');
+
+                            return `
+                                <div class="live-person-card ${isPresent ? 'active-presence' : ''}">
+                                    <div class="live-person-header">
+                                        <div class="live-person-title-box">
+                                            ${avatarHtml}
+                                            <div>
+                                                <h4 class="live-person-name">${p.name}</h4>
+                                                <div class="live-person-status">${statusHtml}</div>
+                                            </div>
+                                        </div>
+                                        <div class="live-person-badges">
+                                            <span class="count-badge"><i class="fa-solid fa-eye"></i> ${p.total_count} lần</span>
+                                            <span class="conf-badge">Max: ${p.max_confidence}</span>
+                                        </div>
+                                    </div>
+                                    <div class="live-history-list">
+                                        ${historyRowsHtml || '<div style="color: var(--text-sub); font-size: 0.75rem;">Chưa có mốc thời gian</div>'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+
+                // 3. Cập nhật Chế độ 2: Bảng dòng thời gian
+                const tbody = document.getElementById('logTableBody');
+                if (tbody) {
+                    if (logs && logs.length > 0) {
+                        tbody.innerHTML = logs.map(log => `
+                            <tr>
+                                <td style="color: var(--primary); font-weight: 600;">
+                                    <i class="fa-solid fa-user" style="font-size: 0.75rem; margin-right: 4px;"></i>${log.name}
+                                </td>
+                                <td style="font-weight: 600;">${log.confidence}</td>
+                                <td style="color: var(--text-sub);">${log.time}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">Chưa có nhật ký phát hiện</td></tr>`;
+                    }
+                }
+            } catch (e) {
+                console.error("Lỗi fetch log:", e);
+            }
+        }
+
+        // Cập nhật log camera định kỳ mỗi 1.2 giây
+        setInterval(fetchAndRenderLogs, 1200);
+
+
+
+        // --- PHẦN 2: PHÂN TÍCH VIDEO UPLOAD & HIỂN THỊ ẢNH SNAPSHOT THEO TỪNG NGƯỜI ---
+
+        // Bật / Tắt Trình phát Video để tiết kiệm diện tích tối đa
+        function toggleVideoPlayer(forceState = null) {
+            if (forceState !== null) {
+                isVideoPlayerVisible = forceState;
+            } else {
+                isVideoPlayerVisible = !isVideoPlayerVisible;
+            }
+
+            const playerCard = document.getElementById('videoPlayerCard');
+            const mainContainer = document.getElementById('videoMainContainer');
+            const btn = document.getElementById('toggleVideoBtn');
+            const txt = document.getElementById('toggleVideoText');
+
+            if (isVideoPlayerVisible) {
+                playerCard.style.display = 'flex';
+                mainContainer.style.gridTemplateColumns = '1fr 1.35fr';
+                txt.innerText = 'BẬT';
+                txt.style.color = 'var(--primary)';
+                btn.style.borderColor = 'var(--primary)';
+                btn.style.background = '#0f172a';
+            } else {
+                playerCard.style.display = 'none';
+                mainContainer.style.gridTemplateColumns = '1fr';
+                txt.innerText = 'TẮT (Tiết kiệm diện tích)';
+                txt.style.color = 'var(--text-sub)';
+                btn.style.borderColor = 'var(--border-color)';
+                btn.style.background = '#1e293b';
+            }
+        }
+
+        async function startVideoAnalysis(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('videoFileInput');
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Vui lòng chọn 1 file video!');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải lên...';
+
+            const progressBox = document.getElementById('videoProgressBox');
+            progressBox.style.display = 'block';
+            document.getElementById('videoProgressBar').style.width = '0%';
+            document.getElementById('videoProgressPercent').innerText = '0%';
+            document.getElementById('videoProgressText').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Đang tải video lên server...';
+
+            // Reset dữ liệu bảng người tìm thấy
+            detectedPersonsMap = {};
+            document.getElementById('personGalleriesContainer').innerHTML = `
+                <div id="emptyTableMsg" style="text-align: center; color: var(--text-sub); padding: 50px 15px;">
+                    <i class="fa-solid fa-radar fa-spin" style="font-size: 2.6rem; margin-bottom: 12px; display: block; color: var(--primary);"></i>
+                    AI đang quét video... Mỗi khi phát hiện được người, <b>ảnh chụp khuôn mặt thực tế</b> tại khoảnh khắc đó sẽ xuất hiện ngay tại đây!
+                </div>
+            `;
+            document.getElementById('totalPeopleBadge').innerText = '0 người';
+            document.getElementById('detectedCountBadge').innerText = '0 ảnh phát hiện';
+
+            try {
+                const res = await fetch('/api/analyze_video', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.status !== 'success') {
+                    alert('Lỗi: ' + data.message);
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="fa-solid fa-microchip"></i> Bắt Đầu Phân Tích AI';
+                    return;
+                }
+
+                currentJobId = data.job_id;
+                lastDetectionId = 0;
+
+                // Nạp video vào trình phát HTML5
+                const player = document.getElementById('html5VideoPlayer');
+                player.src = data.video_url;
+                player.load();
+
+                analyzeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang quét AI...';
+                document.getElementById('videoProgressText').innerHTML = '<i class="fa-solid fa-microchip"></i> AI đang phân tích từng khung hình...';
+
+                showToast(`🚀 Bắt đầu phân tích video: ${data.filename}`);
+
+                // Polling kiểm tra phát hiện mới mỗi 400ms (Realtime Push)
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(pollVideoEvents, 400);
+
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '<i class="fa-solid fa-microchip"></i> Bắt Đầu Phân Tích AI';
+            }
+        }
+
+        async function pollVideoEvents() {
+            if (!currentJobId) return;
+
+            try {
+                const res = await fetch(`/api/video_analysis/${currentJobId}/events?last_id=${lastDetectionId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // Cập nhật thanh tiến trình
+                const progress = data.progress || 0;
+                document.getElementById('videoProgressBar').style.width = `${progress}%`;
+                document.getElementById('videoProgressPercent').innerText = `${progress}%`;
+
+                if (data.total_frames > 0) {
+                    document.getElementById('videoProgressText').innerHTML = 
+                        `<i class="fa-solid fa-spinner fa-spin"></i> Đang quét AI: Frame ${data.processed_frames}/${data.total_frames}`;
+                }
+
+                // CÓ PHÁT HIỆN MỚI TẠI FRAME NÀY -> ĐẨY VÀO DẢI ẢNH THEO TỪNG NGƯỜI
+                if (data.new_detections && data.new_detections.length > 0) {
+                    handleNewDetections(data.new_detections);
+                    lastDetectionId = data.last_id;
+                }
+
+                // Kiểm tra trạng thái hoàn tất
+                if (data.status === 'completed' || data.status === 'error') {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+
+                    const analyzeBtn = document.getElementById('analyzeBtn');
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="fa-solid fa-microchip"></i> Bắt Đầu Phân Tích AI';
+
+                    if (data.status === 'completed') {
+                        document.getElementById('videoProgressBar').style.width = '100%';
+                        document.getElementById('videoProgressPercent').innerText = '100%';
+                        document.getElementById('videoProgressText').innerHTML = '✅ <b>Hoàn tất phân tích video!</b>';
+                        showToast('🎉 Đã hoàn tất phân tích toàn bộ video!');
+                    } else {
+                        document.getElementById('videoProgressText').innerHTML = '❌ <b>Lỗi khi phân tích video.</b>';
+                        showToast('❌ Lỗi khi phân tích video', true);
+                    }
+                }
+
+            } catch (e) {
+                console.error("Lỗi polling events:", e);
+            }
+        }
+
+        // Xử lý các phát hiện mới và hiển thị trực tiếp ảnh snapshot theo từng người
+        function handleNewDetections(newDetections) {
+            const container = document.getElementById('personGalleriesContainer');
+            const emptyMsg = document.getElementById('emptyTableMsg');
+
+            for (const item of newDetections) {
+                const name = item.person_name;
+                const conf = item.confidence;
+                const sec = item.timestamp_sec;
+                const str = item.timestamp_str;
+                const snap = item.snapshot_path;
+                const rowKey = encodeURIComponent(name);
+
+                // Popup Toast báo hiệu
+                showToast(`🎯 Phát hiện [${name}] tại mốc ${str} (${(conf * 100).toFixed(1)}%)`);
+
+                const thumbSrc = snap ? `/${snap}` : '';
+
+                if (!detectedPersonsMap[name]) {
+                    // NGƯỜI MỚI -> TẠO 1 KHỐI CARD MỚI CHO NGƯỜI NÀY
+                    detectedPersonsMap[name] = {
+                        name: name,
+                        maxConf: conf,
+                        count: 1,
+                        appearances: [{ sec: sec, str: str, snap: snap, conf: conf }]
+                    };
+
+                    if (emptyMsg) emptyMsg.remove();
+
+                    const personCard = document.createElement('div');
+                    personCard.className = 'person-gallery-card';
+                    personCard.id = `person-card-${rowKey}`;
+
+                    personCard.innerHTML = `
+                        <div class="person-gallery-header">
+                            <div class="person-gallery-title">
+                                <span class="person-avatar-circle"><i class="fa-solid fa-user"></i></span>
+                                <h3 class="person-gallery-name">${name}</h3>
+                                <span class="count-badge" id="count-${rowKey}">1 ảnh phát hiện</span>
+                            </div>
+                            <span class="conf-badge" id="conf-${rowKey}">Độ tin cậy cao nhất: ${(conf * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="moment-strip" id="moments-${rowKey}">
+                            <!-- Thẻ ảnh đầu tiên -->
+                            ${renderMomentCardHtml(name, str, sec, thumbSrc, conf)}
+                        </div>
+                    `;
+
+                    container.appendChild(personCard);
+                } else {
+                    // NGƯỜI ĐÃ CÓ TRONG DANH SÁCH -> CHÈN THÊM THẺ ẢNH MỚI VÀO DẢI ẢNH CỦA HỌ
+                    const p = detectedPersonsMap[name];
+                    p.count += 1;
+                    if (conf > p.maxConf) {
+                        p.maxConf = conf;
+                    }
+                    p.appearances.push({ sec: sec, str: str, snap: snap, conf: conf });
+
+                    // Cập nhật badges
+                    const confBadge = document.getElementById(`conf-${rowKey}`);
+                    if (confBadge) confBadge.innerText = `Độ tin cậy cao nhất: ${(p.maxConf * 100).toFixed(1)}%`;
+
+                    const countBadge = document.getElementById(`count-${rowKey}`);
+                    if (countBadge) countBadge.innerText = `${p.count} ảnh phát hiện`;
+
+                    // Thêm thẻ ảnh khoảnh khắc mới vào dải ảnh ngang
+                    const strip = document.getElementById(`moments-${rowKey}`);
+                    if (strip) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = renderMomentCardHtml(name, str, sec, thumbSrc, conf);
+                        const newCard = tempDiv.firstElementChild;
+                        strip.appendChild(newCard);
+                    }
+                }
+            }
+
+            // Cập nhật tổng số người và tổng số ảnh phát hiện
+            const totalPeople = Object.keys(detectedPersonsMap).length;
+            let totalDetections = 0;
+            for (const k in detectedPersonsMap) {
+                totalDetections += detectedPersonsMap[k].count;
+            }
+            document.getElementById('totalPeopleBadge').innerText = `${totalPeople} người`;
+            document.getElementById('detectedCountBadge').innerText = `${totalDetections} ảnh phát hiện`;
+        }
+
+        // Tạo thẻ ảnh khoảnh khắc (Snapshot Moment Card)
+        function renderMomentCardHtml(name, str, sec, thumbSrc, conf) {
+            const imgTag = thumbSrc
+                ? `<img src="${thumbSrc}" class="moment-img" alt="${name} lúc ${str}">`
+                : `<div class="moment-img" style="display:flex;align-items:center;justify-content:center;color:var(--text-sub);"><i class="fa-solid fa-user"></i></div>`;
+
+            return `
+                <div class="moment-card new-pulse" onclick="seekVideo(${sec}, '${name}', '${str}')" title="Nhấp để xem video tại mốc ${str}">
+                    <div class="moment-img-wrapper">
+                        ${imgTag}
+                        <div class="moment-play-overlay">
+                            <i class="fa-solid fa-circle-play"></i>
+                        </div>
+                    </div>
+                    <div class="moment-footer">
+                        <span class="moment-time"><i class="fa-solid fa-play" style="font-size:0.65rem;"></i> ${str}</span>
+                        <span class="moment-conf">${(conf * 100).toFixed(0)}%</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Nhảy video HTML5 tới giây chỉ định (tự động mở video nếu video đang bị ẩn)
+        function seekVideo(sec, name, str) {
+            if (!isVideoPlayerVisible) {
+                toggleVideoPlayer(true);
+                showToast('🎬 Đã tự động mở trình phát video để bạn theo dõi');
+            }
+
+            const player = document.getElementById('html5VideoPlayer');
+            if (player) {
+                player.currentTime = parseFloat(sec);
+                player.play();
+                showToast(`⏩ Đang phát video lúc ${str || Math.floor(sec) + 's'} (${name || ''})`);
+            }
+        }
+
+        // Phóng to ảnh snapshot
+        function viewSnapshot(src, name, str, conf) {
+            if (!src) return;
+            document.getElementById('photoModalTitle').innerText = `Ảnh Chân Dung: ${name || ''}`;
+            document.getElementById('photoModalImg').src = src;
+            document.getElementById('photoModalMeta').innerText = `Mốc thời gian: ${str || ''} | Độ tin cậy: ${conf ? (conf * 100).toFixed(1) + '%' : ''}`;
+            document.getElementById('photoModal').style.display = 'flex';
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photoModal').style.display = 'none';
+        }
+
+        // Hiển thị Toast Popup
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if (isError) {
+                toast.style.borderColor = 'var(--danger)';
+                toast.style.borderLeftColor = 'var(--danger)';
+            }
+            toast.innerHTML = `
+                <i class="${isError ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell'}" style="color: ${isError ? 'var(--danger)' : 'var(--primary)'}; font-size: 1.1rem;"></i>
+                <div style="flex: 1;">${message}</div>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.4s, transform 0.4s';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+
+
+        // --- PHẦN 3: QUẢN LÝ DỮ LIỆU KHUÔN MẶT ---
 
         async function loadPersons() {
             const res = await fetch('/api/persons');
@@ -353,14 +1406,14 @@
             const grid = document.getElementById('personCardGrid');
 
             if (!data.persons || data.persons.length === 0) {
-                grid.innerHTML = `<p style="color: var(--text-sub);">Chưa có dữ liệu khuôn mặt nào.</p>`;
+                grid.innerHTML = `<p style="color: var(--text-sub); text-align: center; padding: 20px;">Chưa có dữ liệu khuôn mặt nào trong hệ thống.</p>`;
                 return;
             }
 
             grid.innerHTML = data.persons.map(p => `
                 <div class="person-card">
                     <div class="person-info">
-                        <h3>${p.name}</h3>
+                        <h3><i class="fa-solid fa-user-tag" style="color: var(--primary);"></i> ${p.name}</h3>
                         <p>Số mẫu ảnh: <b style="color: var(--primary);">${p.sample_count}</b></p>
                     </div>
 
@@ -371,10 +1424,10 @@
                             <i class="fa-solid fa-plus"></i> Thêm ảnh
                         </button>
                         <button class="btn btn-warning" onclick="openManageModal(${p.id}, '${p.name}')">
-                            <i class="fa-solid fa-images"></i> Xóa ảnh mẫu
+                            <i class="fa-solid fa-images"></i> Quản lý ảnh mẫu
                         </button>
                         <button class="btn btn-primary" onclick="renamePerson(${p.id}, '${p.name}')">
-                            <i class="fa-solid fa-pen"></i> Sửa
+                            <i class="fa-solid fa-pen"></i> Đổi tên
                         </button>
                         <button class="btn btn-danger" onclick="deletePerson(${p.id})">
                             <i class="fa-solid fa-trash"></i> Xóa
@@ -397,15 +1450,13 @@
 
             try {
                 const res = await fetch(`/api/person_embeddings?person_id=${personId}`);
-                if (!res.ok) {
-                    throw new Error(`Mã lỗi HTTP: ${res.status}`);
-                }
+                if (!res.ok) throw new Error(`Mã lỗi: ${res.status}`);
 
                 const data = await res.json();
                 const samples = data.embeddings || [];
 
                 if (samples.length === 0) {
-                    listContainer.innerHTML = `<p style="color: var(--text-sub); text-align: center;">Không có mẫu ảnh nào trong DB.</p>`;
+                    listContainer.innerHTML = `<p style="color: var(--text-sub); text-align: center;">Không có mẫu ảnh nào.</p>`;
                 } else {
                     listContainer.innerHTML = samples.map((item, index) => {
                         const imgSrc = item.image_path ? `/${item.image_path}` : '';
@@ -427,7 +1478,6 @@
                     }).join('');
                 }
             } catch (err) {
-                console.error("Lỗi:", err);
                 listContainer.innerHTML = `<p style="color: var(--danger); text-align: center;">${err.message}</p>`;
             }
         }
@@ -499,23 +1549,6 @@
             if (data.status === 'success') {
                 document.getElementById('registerForm').reset();
                 loadPersons();
-            }
-        });
-
-        document.getElementById('uploadVideoForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const fileInput = document.getElementById('videoFileInput');
-            if (!fileInput.files[0]) return;
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            const res = await fetch('/api/upload_video', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.status === 'success') {
-                currentSource = 'file';
-                const streamImg = document.getElementById('cameraStream');
-                streamImg.src = `/video_feed?source=file&t=${new Date().getTime()}`;
             }
         });
     </script>
