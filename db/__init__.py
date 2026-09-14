@@ -1,16 +1,12 @@
-"""
-Facade module database.py để duy trì tính tương thích ngược (Backward Compatibility).
-Toàn bộ logic truy xuất CSDL thực tế đã được module hóa chuẩn trong package `db/`.
-"""
-
-from db import (
-    get_db,
-    init_db,
+from db.connection import get_db, init_db
+from db.persons_repo import (
     save_person_embedding,
     get_person_embeddings,
     delete_single_embedding,
-    load_all_embeddings,
-    log_detection,
+    load_all_embeddings
+)
+from db.logs_repo import log_detection
+from db.jobs_repo import (
     create_video_job,
     update_job_status,
     add_video_detection,
