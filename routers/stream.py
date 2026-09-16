@@ -2,6 +2,7 @@ import os
 import tempfile
 from fastapi import APIRouter, UploadFile, File, Query
 from fastapi.responses import StreamingResponse
+from config import DEFAULT_AUTO_ZOOM
 from services.stream_service import stream_service
 
 router = APIRouter(tags=["Stream"])
@@ -21,6 +22,13 @@ def control_stream(action: str = Query(...)):
     return {"status": "success", "is_paused": stream_service.is_paused}
 
 
+@router.post("/api/set_auto_zoom")
+def set_auto_zoom(enabled: bool = Query(...)):
+    """Điều khiển bật/tắt Auto-Zoom mềm trong thời gian thực mà không cần reload camera hay gián đoạn stream"""
+    state = stream_service.set_auto_zoom(enabled)
+    return {"status": "success", "auto_zoom": state}
+
+
 @router.post("/api/upload_video")
 async def upload_video_api(file: UploadFile = File(...)):
     """Upload video để phát trực tiếp trong tab Giám sát Camera"""
@@ -38,9 +46,10 @@ async def upload_video_api(file: UploadFile = File(...)):
 
 
 @router.get("/video_feed")
-def video_feed(source: str = Query("webcam"), ip: str = Query(""), auto_zoom: bool = Query(False)):
+def video_feed(source: str = Query("webcam"), ip: str = Query(""), auto_zoom: bool = Query(DEFAULT_AUTO_ZOOM)):
     """Endpoint sinh luồng MJPEG thời gian thực có áp dụng Auto-Zoom và AI Detection"""
     return StreamingResponse(
         stream_service.generate_video_stream(source=source, ip=ip, auto_zoom=auto_zoom),
         media_type='multipart/x-mixed-replace; boundary=frame'
     )
+

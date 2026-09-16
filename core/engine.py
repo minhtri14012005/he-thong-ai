@@ -9,6 +9,9 @@ from insightface.app.common import Face
 from config import (
     SIMILARITY_THRESHOLD,
     DET_SIZE,
+    DET_THRESH,
+    USE_GPU,
+    GPU_DEVICE_ID,
     VIDEO_DET_SIZE,
     ENABLE_PATCH_ZOOM_SCAN,
     UPLOAD_DIR
@@ -20,14 +23,64 @@ from core.zoom import SmoothZoomController
 
 class HighAccuracyFaceEngine:
     def __init__(self):
-        self.app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])
-        self.app.prepare(ctx_id=0, det_size=DET_SIZE)
+        providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if USE_GPU else ['CPUExecutionProvider']
+
+        try:
+            self.app = FaceAnalysis(name='buffalo_l', providers=providers)
+            self.app.prepare(ctx_id=GPU_DEVICE_ID if USE_GPU else -1, det_size=DET_SIZE)
+            dev_label = 'NVIDIA GPU CUDA:0 (RTX 4050)' if USE_GPU else 'CPU'
+            print(f"[AI Engine] Khoi tao thanh cong tren: {dev_label} - DET_SIZE={DET_SIZE}")
+        except Exception as e:
+            print(f"[AI Engine] Loi khoi tao GPU ({e}), fallback sang CPU")
+            self.app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])
+            self.app.prepare(ctx_id=-1, det_size=DET_SIZE)
+
+        # Cấu hình ngưỡng phát hiện cho SCRFD
+        if hasattr(self.app, 'det_model') and hasattr(self.app.det_model, 'det_thresh'):
+            self.app.det_model.det_thresh = DET_THRESH
+
         self.reload_known_faces()
         self.zoom_controller = SmoothZoomController()
 
     def reload_known_faces(self):
-        """Cập nhật danh sách vector từ CSDL lên RAM"""
+        """Cập nhật danh sách vector từ CSDL lên RAM và tiền xử lý ma trận so khớp nhanh"""
         self.known_faces = load_all_embeddings()
+
+        # Tạo ma trận numpy chuẩn hóa sẵn để so sánh vector cực nhanh qua matrix dot product
+        emb_list = []
+        names_list = []
+        for name, vectors in self.known_faces.items():
+            for vec in vectors:
+                arr = np.array(vec, dtype=np.float32)
+                norm = np.linalg.norm(arr)
+                if norm > 1e-6:
+                    emb_list.append(arr / norm)
+                    names_list.append(name)
+
+        if len(emb_list) > 0:
+            self.known_matrix = np.array(emb_list, dtype=np.float32)  # Shape (N, 512)
+            self.known_names = names_list
+        else:
+            self.known_matrix = None
+            self.known_names = []
+
+    def match_face(self, embedding: np.ndarray):
+        """So khớp vector 512D với CSDL bằng 1 phép nhân ma trận tối ưu BLAS/GPU"""
+        if self.known_matrix is None or len(self.known_names) == 0 or embedding is None:
+            return "Unknown", 0.0
+
+        norm = np.linalg.norm(embedding)
+        if norm <= 1e-6:
+            return "Unknown", 0.0
+
+        norm_emb = embedding / norm
+        sims = np.dot(self.known_matrix, norm_emb)
+        best_idx = int(np.argmax(sims))
+        best_sim = float(sims[best_idx])
+
+        if best_sim > SIMILARITY_THRESHOLD:
+            return self.known_names[best_idx], best_sim
+        return "Unknown", best_sim
 
     def extract_face_embedding(self, image: np.ndarray):
         """Trích xuất Vector 512D và tự động cắt lưu ảnh mẫu vào static/uploads"""
@@ -58,39 +111,31 @@ class HighAccuracyFaceEngine:
 
         return largest_face.embedding, rel_path, "Thành công"
 
-    def process_frame(self, frame: np.ndarray):
+    def process_frame(self, frame: np.ndarray, max_num: int = 0):
         """Phát hiện và nhận diện khuôn mặt trong 1 khung hình camera thời gian thực"""
-        faces = self.app.get(frame)
+        faces = self.app.get(frame, max_num=max_num)
         results = []
 
         for face in faces:
             bbox = face.bbox.astype(int)
             embedding = face.embedding
 
-            matched_name = "Unknown"
-            max_sim = 0.0
-
-            # So sánh với tất cả các vector mẫu của từng người
-            for name, emb_list in self.known_faces.items():
-                for known_emb in emb_list:
-                    sim = np.dot(embedding, known_emb) / (np.linalg.norm(embedding) * np.linalg.norm(known_emb))
-                    if sim > SIMILARITY_THRESHOLD and sim > max_sim:
-                        max_sim = sim
-                        matched_name = name
+            matched_name, max_sim = self.match_face(embedding)
 
             results.append({
                 "bbox": bbox,
                 "name": matched_name,
-                "confidence": max_sim
+                "confidence": max_sim,
+                "embedding": embedding
             })
 
         return results
 
     def process_frame_high_res(self, frame: np.ndarray):
         """
-        Phát hiện và nhận diện khuôn mặt tầm xa (dành cho Video Upload toàn cảnh phòng học):
+        Phát hiện và nhận diện khuôn mặt tầm xa (dành cho Video Toàn Cảnh Phòng Học):
         1. Quét toàn cảnh độ phân giải cao (Global High-Res Pass) với VIDEO_DET_SIZE = (1280, 1280).
-        2. Quét phân vùng tầm xa (Classroom Patch Zoom Scan): chia frame thành các cụm vùng học sinh (nửa trên / nửa giữa)
+        2. Quét phân vùng tầm xa (Classroom Patch Zoom Scan): chia frame thành các cụm vùng học sinh (nửa trên / giữa)
            để dò quét ở tỉ lệ điểm ảnh 1:1, bắt trọn các khuôn mặt nhỏ ở bàn xa nhất.
         3. Gộp và khử trùng lặp (NMS) với iou_thresh=0.45.
         4. Trích xuất vector đặc trưng 512D từ khung hình gốc và so khớp với CSDL.
@@ -103,7 +148,7 @@ class HighAccuracyFaceEngine:
         g_bboxes, g_kpss = self.app.det_model.detect(
             frame,
             input_size=VIDEO_DET_SIZE,
-            det_thresh=0.40
+            det_thresh=DET_THRESH
         )
         if g_bboxes is not None and len(g_bboxes) > 0:
             candidate_bboxes.append(g_bboxes)
@@ -134,7 +179,7 @@ class HighAccuracyFaceEngine:
                 p_bboxes, p_kpss = self.app.det_model.detect(
                     patch_img,
                     input_size=(640, 640),
-                    det_thresh=0.40
+                    det_thresh=DET_THRESH
                 )
                 if p_bboxes is not None and len(p_bboxes) > 0:
                     p_bboxes_orig = p_bboxes.copy()
@@ -190,20 +235,7 @@ class HighAccuracyFaceEngine:
                         except Exception:
                             pass
 
-            matched_name = "Unknown"
-            max_sim = 0.0
-
-            if embedding is not None:
-                norm_emb = np.linalg.norm(embedding)
-                if norm_emb > 1e-6:
-                    for name, emb_list in self.known_faces.items():
-                        for known_emb in emb_list:
-                            norm_known = np.linalg.norm(known_emb)
-                            if norm_known > 1e-6:
-                                sim = np.dot(embedding, known_emb) / (norm_emb * norm_known)
-                                if sim > SIMILARITY_THRESHOLD and sim > max_sim:
-                                    max_sim = sim
-                                    matched_name = name
+            matched_name, max_sim = self.match_face(embedding)
 
             results.append({
                 "bbox": bbox,

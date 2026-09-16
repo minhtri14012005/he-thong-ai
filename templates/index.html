@@ -46,15 +46,16 @@
                 <input type="text" id="iphoneIpInput" placeholder="IP hoặc URL (VD: 192.168.1.15)" class="input-control" style="width: 230px; display: none;">
                 <button type="button" class="btn btn-primary" onclick="changeCameraSource()"><i class="fa-solid fa-sync"></i> Kết Nối</button>
                 
-                <!-- Nút bật/tắt Auto-Zoom thông minh -->
-                <button type="button" id="autoZoomBtn" class="btn" onclick="toggleAutoZoom()" style="background: #1e293b; color: var(--text-main); border: 1px solid var(--border-color); margin-left: auto;">
-                    <i class="fa-solid fa-expand"></i> Auto-Zoom: <b id="autoZoomText" style="color: var(--text-sub);">TẮT</b>
+                <!-- Nút bật/tắt Auto-Zoom thông minh (Mặc định TỰ ĐỘNG BẬT) -->
+                <button type="button" id="autoZoomBtn" class="btn" onclick="toggleAutoZoom()" title="Tự động phóng to người ở xa và thu nhỏ về toàn cảnh khi vắng người (Bấm để chuyển chế độ)" style="background: #0284c7; color: #fff; border: 1px solid var(--primary); margin-left: auto;">
+                    <i class="fa-solid fa-expand"></i> Auto-Zoom: <b id="autoZoomText" style="color: #fff;">TỰ ĐỘNG (BẬT)</b>
                 </button>
             </div>
 
             <div class="media-container">
-                <img id="cameraStream" src="/video_feed?source=webcam" alt="Stream đã tắt">
+                <img id="cameraStream" src="/video_feed?source=webcam&auto_zoom=true" alt="Stream đã tắt">
             </div>
+
 
             <div class="stream-controls">
                 <button type="button" id="pauseBtn" class="btn btn-warning" onclick="togglePause()"><i class="fa-solid fa-pause"></i> Tạm Dừng</button>

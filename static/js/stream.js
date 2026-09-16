@@ -1,26 +1,41 @@
 // --- ĐIỀU KHIỂN LUỒNG LIVE STREAM & AUTO-ZOOM ---
 
-function toggleAutoZoom() {
+async function toggleAutoZoom() {
     autoZoomEnabled = !autoZoomEnabled;
     const btn = document.getElementById('autoZoomBtn');
     const txt = document.getElementById('autoZoomText');
     if (autoZoomEnabled) {
-        btn.style.borderColor = 'var(--primary)';
-        btn.style.background = '#0284c7';
-        btn.style.color = '#fff';
-        txt.innerText = 'BẬT (Phòng học)';
-        txt.style.color = '#fff';
-        showToast('🔍 Đã BẬT Auto-Zoom: Tự động phóng to người ở xa và thu nhỏ về toàn cảnh khi vắng người');
+        if (btn) {
+            btn.style.borderColor = 'var(--primary)';
+            btn.style.background = '#0284c7';
+            btn.style.color = '#fff';
+        }
+        if (txt) {
+            txt.innerText = 'TỰ ĐỘNG (BẬT)';
+            txt.style.color = '#fff';
+        }
+        showToast('🔍 Đã BẬT Auto-Zoom: Tự động bắt nét khoảng cách (Không gián đoạn video)');
     } else {
-        btn.style.borderColor = 'var(--border-color)';
-        btn.style.background = '#1e293b';
-        btn.style.color = 'var(--text-main)';
-        txt.innerText = 'TẮT';
-        txt.style.color = 'var(--text-sub)';
-        showToast('Đã TẮT Auto-Zoom: Hiển thị toàn cảnh góc rộng');
+        if (btn) {
+            btn.style.borderColor = 'var(--border-color)';
+            btn.style.background = '#1e293b';
+            btn.style.color = 'var(--text-main)';
+        }
+        if (txt) {
+            txt.innerText = 'TẮT (Toàn Cảnh)';
+            txt.style.color = 'var(--text-sub)';
+        }
+        showToast('Đã TẮT Auto-Zoom: Cố định góc rộng toàn cảnh');
     }
-    changeCameraSource();
+
+    // Gửi lệnh mềm tới backend trong nền (Zero-lag, giữ nguyên luồng 30 FPS, không reload camera)
+    try {
+        await fetch(`/api/set_auto_zoom?enabled=${autoZoomEnabled}`, { method: 'POST' });
+    } catch (err) {
+        console.error('Lỗi khi cập nhật Auto-Zoom:', err);
+    }
 }
+
 
 function stopStream() {
     const streamImg = document.getElementById('cameraStream');

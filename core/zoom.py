@@ -30,6 +30,38 @@ class SmoothZoomController:
         default_box = np.array([0.0, 0.0, float(w), float(h)], dtype=np.float32)
 
         if not enabled:
+            # Nếu đang trong trạng thái zoom mà tắt, mượt mà lùi về toàn cảnh (1.0x) thay vì giật hình
+            if self.current_crop is not None and not np.allclose(self.current_crop, default_box, atol=2.0):
+                self.target_crop = default_box.copy()
+                self.current_crop = self.current_crop * (1.0 - self.smooth_factor) + self.target_crop * self.smooth_factor
+                cx1, cy1, cx2, cy2 = self.current_crop
+                cx1 = max(0, min(w - 10, int(round(cx1))))
+                cy1 = max(0, min(h - 10, int(round(cy1))))
+                cx2 = max(cx1 + 10, min(w, int(round(cx2))))
+                cy2 = max(cy1 + 10, min(h, int(round(cy2))))
+                crop_w = cx2 - cx1
+                crop_h = cy2 - cy1
+                cropped_img = frame[cy1:cy2, cx1:cx2]
+                if cropped_img.size > 0 and crop_w > 0 and crop_h > 0:
+                    zoomed_frame = cv2.resize(cropped_img, (w, h), interpolation=cv2.INTER_LINEAR)
+                    scale_x = float(w) / float(crop_w)
+                    scale_y = float(h) / float(crop_h)
+                    adj_detections = []
+                    for d in detections:
+                        orig_b = d["bbox"]
+                        adj_b = np.array([
+                            int((orig_b[0] - cx1) * scale_x),
+                            int((orig_b[1] - cy1) * scale_y),
+                            int((orig_b[2] - cx1) * scale_x),
+                            int((orig_b[3] - cy1) * scale_y)
+                        ])
+                        adj_detections.append({
+                            "bbox": adj_b,
+                            "name": d["name"],
+                            "confidence": d["confidence"]
+                        })
+                    return zoomed_frame, adj_detections, False
+
             self.current_crop = default_box.copy()
             self.target_crop = default_box.copy()
             self.no_face_count = 0

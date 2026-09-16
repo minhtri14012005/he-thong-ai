@@ -1,7 +1,7 @@
 // --- BIẾN TOÀN CỤC & TRẠNG THÁI ỨNG DỤNG ---
 let currentSource = 'webcam';
 let isPausedState = false;
-let autoZoomEnabled = false;
+let autoZoomEnabled = true;
 let isVideoPlayerVisible = true;
 let currentPersonIdForModal = null;
 let currentPersonNameForModal = '';

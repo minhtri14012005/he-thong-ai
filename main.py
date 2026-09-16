@@ -29,8 +29,23 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 @app.on_event("startup")
 def startup_event():
-    """Khởi tạo CSDL khi khởi động server"""
+    """Khởi tạo CSDL và Warm-up mô hình AI khi khởi động server"""
     init_db()
+
+    # Pre-warming mô hình AI trên GPU (Khởi tạo sẵn & JIT compilation để nhận diện tức thì ngay frame 1)
+    print("\n" + "=" * 60)
+    print("[Startup] Dang khoi tao va Warm-up mo hinh AI tren GPU/CPU...")
+    try:
+        import numpy as np
+        from core.engine import get_ai_engine
+        engine = get_ai_engine()
+        # Chạy forward pass với dummy frame để CUDA cấp phát VRAM và biên dịch kernel sẵn
+        dummy_frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+        engine.process_frame(dummy_frame)
+        print("[Startup] >>> AI Engine Warm-up HOAN TAT! San sang nhan dien tuc thi.")
+    except Exception as e:
+        print(f"[Startup Warning] Loi khi warm-up AI Engine: {e}")
+    print("=" * 60 + "\n")
 
 
 @app.get("/", response_class=HTMLResponse)
