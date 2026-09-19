@@ -3,7 +3,7 @@ import uuid
 import cv2
 import numpy as np
 from typing import List
-from fastapi import APIRouter, UploadFile, File, Form, Query
+from fastapi import APIRouter, UploadFile, File, Form, Query, HTTPException
 from fastapi.responses import JSONResponse
 
 from config import UPLOAD_DIR
@@ -22,13 +22,29 @@ router = APIRouter(prefix="/api", tags=["Persons"])
 def get_persons_api():
     """Lấy danh sách tất cả người dùng và số lượng ảnh mẫu đã đăng ký"""
     db = get_db()
-    persons = db.execute("SELECT id, name, created_at FROM persons").fetchall()
+    persons = db.execute("SELECT id, name, created_at, search_enabled FROM persons").fetchall()
     result = []
     for p in persons:
         p_id, name, created_at = p["id"], p["name"], p["created_at"]
         count = db.execute("SELECT COUNT(*) FROM face_embeddings WHERE person_id = ?", (p_id,)).fetchone()[0]
-        result.append({"id": p_id, "name": name, "sample_count": count, "created_at": created_at})
+        result.append({"id": p_id, "name": name, "sample_count": count, "created_at": created_at,
+                       "search_enabled": bool(p['search_enabled'])})
+    db.close()
     return JSONResponse(content={"persons": result})
+
+
+@router.put('/persons/{person_id}/search')
+def set_person_search(person_id: int, enabled: bool = Query(...)):
+    db = get_db()
+    try:
+        cursor = db.execute('UPDATE persons SET search_enabled=? WHERE id=?', (int(enabled), person_id))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail='Không tìm thấy người này')
+        db.commit()
+    finally:
+        db.close()
+    get_ai_engine().reload_known_faces()
+    return {'status': 'success', 'search_enabled': enabled}
 
 
 @router.get("/person_embeddings")

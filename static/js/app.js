@@ -1,7 +1,7 @@
 // --- BIẾN TOÀN CỤC & TRẠNG THÁI ỨNG DỤNG ---
-let currentSource = 'webcam';
+let currentSource = 'iphone';
 let isPausedState = false;
-let autoZoomEnabled = true;
+let autoZoomEnabled = false;
 let isVideoPlayerVisible = true;
 let currentPersonIdForModal = null;
 let currentPersonNameForModal = '';
@@ -48,10 +48,12 @@ function showToast(message, isError = false) {
         toast.style.borderColor = 'var(--danger)';
         toast.style.borderLeftColor = 'var(--danger)';
     }
-    toast.innerHTML = `
-        <i class="${isError ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell'}" style="color: ${isError ? 'var(--danger)' : 'var(--primary)'}; font-size: 1.1rem;"></i>
-        <div style="flex: 1;">${message}</div>
-    `;
+    const icon = document.createElement('i');
+    icon.className = isError ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell';
+    const content = document.createElement('div');
+    content.style.flex = '1';
+    content.textContent = message;
+    toast.append(icon, content);
     container.appendChild(toast);
 
     setTimeout(() => {

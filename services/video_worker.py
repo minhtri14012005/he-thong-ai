@@ -1,125 +1,130 @@
-import os
+﻿"""Sequential video decoding, adaptive sampling and early confirmed events."""
+import json
+import math
+import time
+import zlib
 import cv2
-import uuid
-from config import SNAPSHOT_DIR
-from db.jobs_repo import update_job_status, add_video_detection
+from config import (VIDEO_SCAN_PROFILES, VIDEO_BURST_HOLD_SECONDS, VIDEO_REENTRY_SECONDS,
+                    LIVE_MIN_FACE_PIXELS, LIVE_MIN_SHARPNESS, LIVE_CONFIRM_HITS,
+                    LIVE_CONFIRM_WINDOW, LIVE_CONFIRM_SECONDS)
 from core.engine import get_ai_engine
+from core.gallery import GallerySnapshot
+from core.live_tracker import LiveTracker
+from core.live_zones import find_zone, validate_zones
+from core.tracker import compute_iou
+from db.persons_repo import load_live_gallery
+from db.jobs_repo import set_video_job_details
+from services.video_events import VideoEventRecorder
 
 
-def analyze_video_background(
-    job_id: str,
-    video_path: str,
-    sample_fps: float = 2.0,
-    cooldown_sec: float = 1.5
-):
-    """
-    Phân tích video nền siêu tốc:
-    - Quét frame theo sample_fps (mặc định 2 khung hình / giây).
-    - Không sleep chờ FPS thực -> quét 20s video trong vài giây.
-    - Phát hiện bất kỳ người nào có trong DB:
-      + Ngay lập tức cắt thumbnail snapshot khuôn mặt
-      + Ghi ngay vào video_detections trong DB để Web push thông báo tức thì.
-    - Cập nhật progress liên tục.
-    """
-    ai_engine = get_ai_engine()
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        update_job_status(job_id, "error", 0)
-        return
+def video_settings(gallery, mode, zones):
+    return {**gallery.audit(), 'mode': mode, 'profile': dict(VIDEO_SCAN_PROFILES[mode]),
+            'zones': zones, 'model': 'buffalo_l', 'min_face_pixels': LIVE_MIN_FACE_PIXELS,
+            'min_sharpness': LIVE_MIN_SHARPNESS, 'confirm_hits': LIVE_CONFIRM_HITS,
+            'confirm_window': LIVE_CONFIRM_WINDOW, 'confirm_seconds': LIVE_CONFIRM_SECONDS,
+            'reentry_seconds': VIDEO_REENTRY_SECONDS}
 
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if not fps or fps <= 0 or fps > 120:
-        fps = 25.0
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    step = max(1, int(round(fps / sample_fps)))
-    frame_idx = 0
-    processed_count = 0
-    last_seen_time = {}  # person_name -> last_timestamp_sec
+def needs_dense_sampling(raw, tracked, previous):
+    if any(d['state'] == 'pending' for d in tracked):
+        return True
+    # New or displaced boxes include people outside the watchlist who may occlude a target.
+    return any(not previous or max(compute_iou(d['bbox'], old['bbox']) for old in previous) < 0.65
+               for d in raw)
 
-    # Bắt đầu phân tích
-    update_job_status(job_id, "processing", 0, processed_frames=0, total_frames=total_frames)
 
+def analyze_video_background(job_id, video_path, mode='detailed', gallery=None, zones=None):
+    cap = None
+    recorder = VideoEventRecorder(job_id)
+    started = time.monotonic()
+    decoded = scanned = total = 0
+    timestamp = 0.0
+    warnings = set()
+    progress = 0
     try:
+        mode = 'detailed' if mode == 'classroom' else mode
+        profile = VIDEO_SCAN_PROFILES[mode]
+        gallery = gallery if gallery is not None else GallerySnapshot(load_live_gallery())
+        zones = validate_zones(zones or [])
+        if not gallery.watchlist:
+            raise ValueError('Chưa có người đang bật tìm kiếm với ảnh mẫu hợp lệ')
+        set_video_job_details(job_id, status='processing', mode=mode, error_message=None,
+                              settings_json=json.dumps(video_settings(gallery, mode, zones), ensure_ascii=False))
+        engine = get_ai_engine()
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise ValueError('Không mở được video; hãy kiểm tra định dạng hoặc file bị lỗi')
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if not math.isfinite(fps) or fps <= 0:
+            fps = 25.0
+            warnings.add('Không đọc được FPS; mốc thời gian dự phòng dùng 25 FPS.')
+        count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        total = int(count) if math.isfinite(count) and count > 0 else 0
+        set_video_job_details(job_id, source_fps=fps, total_frames=total,
+                              duration_sec=total/fps if total else 0)
+        tracker = LiveTracker()
+        next_scan = 0.0
+        burst_until = -1.0
+        previous = []
+        last_hash = None
+        first_pts = previous_pts = None
+        last_progress = 0.0
         while True:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            ret, frame = cap.read()
-            if not ret or frame is None:
+            ok, frame = cap.read()
+            if not ok or frame is None:
                 break
-
-            processed_count += 1
-            timestamp_sec = frame_idx / fps
-            timestamp_str = f"{int(timestamp_sec // 60):02d}:{int(timestamp_sec % 60):02d}"
-
-            # Nhận diện khuôn mặt trong frame với cơ chế quét tầm xa (High-Res & Classroom Patch Zoom Scan)
-            results = ai_engine.process_frame_high_res(frame)
-
-            # Lọc ra những người có trong danh sách cần tìm (name != 'Unknown')
-            found_persons = [r for r in results if r["name"] != "Unknown"]
-
-            for p in found_persons:
-                name = p["name"]
-                conf = float(p["confidence"])
-                last_time = last_seen_time.get(name, -999.0)
-
-                # Kiểm tra debounce: nếu cùng 1 người xuất hiện liên tục thì cách ít nhất cooldown_sec giây mới ghi tiếp
-                if timestamp_sec - last_time >= cooldown_sec:
-                    last_seen_time[name] = timestamp_sec
-
-                    # Cắt thumbnail khuôn mặt lưu lại làm bằng chứng (tối ưu cho cả khuôn mặt ở xa)
-                    bbox = p["bbox"]
-                    bx1, by1, bx2, by2 = bbox
-                    fh, fw = frame.shape[:2]
-                    bw = bx2 - bx1
-                    bh = by2 - by1
-                    pad_w = max(int(bw * 0.35), 20)
-                    pad_h = max(int(bh * 0.35), 20)
-                    sx1 = max(0, bx1 - pad_w)
-                    sy1 = max(0, by1 - pad_h)
-                    sx2 = min(fw, bx2 + pad_w)
-                    sy2 = min(fh, by2 + pad_h)
-                    crop_face = frame[sy1:sy2, sx1:sx2]
-
-                    # Đảm bảo thumbnail sắc nét, nếu khuôn mặt ở xa có kích thước nhỏ thì upscale chất lượng cao
-                    if crop_face.size > 0:
-                        ch, cw = crop_face.shape[:2]
-                        if ch < 120 or cw < 120:
-                            scale = max(120.0 / ch, 120.0 / cw)
-                            target_w = max(1, int(round(cw * scale)))
-                            target_h = max(1, int(round(ch * scale)))
-                            crop_face = cv2.resize(crop_face, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
-
-                    snap_filename = f"{job_id}_{uuid.uuid4().hex[:8]}.jpg"
-                    snap_full_path = os.path.join(SNAPSHOT_DIR, snap_filename)
-                    if crop_face.size > 0:
-                        cv2.imwrite(snap_full_path, crop_face)
-                    else:
-                        cv2.imwrite(snap_full_path, frame)
-                    snap_rel_path = f"static/snapshots/{snap_filename}"
-
-                    # ĐẨY NGAY VÀO CSDL TẠI THỜI ĐIỂM NÀY -> FRONTEND SẼ NHẬN THÔNG BÁO TỨC THÌ!
-                    add_video_detection(
-                        job_id=job_id,
-                        person_name=name,
-                        confidence=conf,
-                        timestamp_sec=timestamp_sec,
-                        timestamp_str=timestamp_str,
-                        snapshot_path=snap_rel_path
-                    )
-
-            # Cập nhật tiến độ
-            progress = min(99, int((frame_idx / max(1, total_frames)) * 100))
-            if processed_count % 3 == 0 or frame_idx + step >= total_frames:
-                update_job_status(job_id, "processing", progress, processed_frames=processed_count, total_frames=total_frames)
-
-            frame_idx += step
-            if frame_idx >= total_frames:
-                break
-
-        # Hoàn thành 100%
-        update_job_status(job_id, "completed", 100, processed_frames=processed_count, total_frames=total_frames)
-    except Exception as e:
-        print(f"Lỗi khi phân tích video {job_id}: {e}")
-        update_job_status(job_id, "error", 0)
+            index = decoded
+            decoded += 1
+            pts = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            if first_pts is None:
+                first_pts = pts if math.isfinite(pts) and pts >= 0 else 0.0
+            if index == 0:
+                timestamp = 0.0
+                set_video_job_details(job_id, frame_width=frame.shape[1], frame_height=frame.shape[0])
+            elif math.isfinite(pts) and previous_pts is not None and pts > previous_pts and pts-first_pts > timestamp:
+                timestamp = pts-first_pts
+            else:
+                timestamp = max(timestamp + 1.0/fps, index/fps)
+                warnings.add('Có mốc thời gian thiếu hoặc không tăng; đã dùng FPS dự phòng cho các frame đó.')
+            previous_pts = pts if math.isfinite(pts) else None
+            if timestamp + 1e-6 >= next_scan:
+                scanned += 1
+                signature = zlib.adler32(frame)
+                if signature != last_hash:
+                    raw = engine.process_frame_video(frame, gallery, mode, scanned-1)
+                    tracked = tracker.update(raw, timestamp)
+                    for det in tracked:
+                        det['zone'] = find_zone(det['bbox'], frame.shape, zones)
+                    # Committed here, before later frames are decoded or the job completes.
+                    recorder.record(tracked, frame, timestamp)
+                    if needs_dense_sampling(raw, tracked, previous):
+                        burst_until = timestamp + VIDEO_BURST_HOLD_SECONDS
+                    previous = raw
+                    last_hash = signature
+                else:
+                    tracker.update([], timestamp)
+                    recorder.flush(timestamp)
+                scan_fps = profile['burst_fps'] if timestamp <= burst_until else profile['sample_fps']
+                next_scan = timestamp + 1.0/min(fps, scan_fps)
+            progress = min(99, int(decoded/max(1,total)*100)) if total else 0
+            if time.monotonic()-last_progress >= 0.3:
+                set_video_job_details(job_id, progress=progress, processed_frames=decoded,
+                    scanned_frames=scanned, scanned_until_sec=timestamp, elapsed_sec=time.monotonic()-started,
+                    warning_message=' '.join(sorted(warnings)) or None)
+                last_progress = time.monotonic()
+        recorder.flush()
+        if decoded == 0:
+            raise ValueError('Video không có khung hình đọc được')
+        if total and decoded < total-max(2, int(total*.02)):
+            raise ValueError(f'Video kết thúc sớm: đọc được {decoded}/{total} frame. Kết quả hiện có chỉ là một phần.')
+        set_video_job_details(job_id, status='completed', progress=100, processed_frames=decoded,
+            total_frames=decoded, scanned_frames=scanned, scanned_until_sec=timestamp,
+            duration_sec=timestamp+1.0/fps, elapsed_sec=time.monotonic()-started,
+            warning_message=' '.join(sorted(warnings)) or None)
+    except Exception as exc:
+        set_video_job_details(job_id, status='error', progress=progress, error_message=str(exc),
+            processed_frames=decoded, scanned_frames=scanned, scanned_until_sec=timestamp,
+            elapsed_sec=time.monotonic()-started)
     finally:
-        cap.release()
+        if cap is not None:
+            cap.release()

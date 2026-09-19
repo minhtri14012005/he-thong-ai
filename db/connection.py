@@ -9,7 +9,7 @@ def get_db():
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -79,5 +79,32 @@ def init_db():
     )
     ''')
 
+    # Additive migrations preserve existing people, embeddings and historical logs.
+    person_columns = {row[1] for row in cursor.execute('PRAGMA table_info(persons)')}
+    if 'search_enabled' not in person_columns:
+        cursor.execute('ALTER TABLE persons ADD COLUMN search_enabled INTEGER NOT NULL DEFAULT 1')
+    log_columns = {row[1] for row in cursor.execute('PRAGMA table_info(detection_logs)')}
+    for name, sql_type in {
+        'person_id': 'INTEGER', 'source': 'TEXT', 'zone': 'TEXT', 'last_zone': 'TEXT',
+        'first_seen_at': 'TEXT', 'last_seen_at': 'TEXT',
+        'snapshot_path': 'TEXT', 'face_path': 'TEXT', 'track_id': 'INTEGER'
+    }.items():
+        if name not in log_columns:
+            cursor.execute(f'ALTER TABLE detection_logs ADD COLUMN {name} {sql_type}')
+    for table, columns in {
+        'video_analysis_jobs': {'mode': "TEXT DEFAULT 'legacy'", 'settings_json': 'TEXT',
+            'error_message': 'TEXT', 'scanned_frames': 'INTEGER DEFAULT 0',
+            'scanned_until_sec': 'REAL DEFAULT 0', 'elapsed_sec': 'REAL DEFAULT 0',
+            'source_fps': 'REAL', 'frame_width': 'INTEGER', 'frame_height': 'INTEGER',
+            'warning_message': 'TEXT'},
+        'video_detections': {'person_id': 'INTEGER', 'first_seen_sec': 'REAL',
+            'last_seen_sec': 'REAL', 'scene_path': 'TEXT', 'zone': 'TEXT', 'last_zone': 'TEXT',
+            'track_id': 'INTEGER', 'confirmation_delay_sec': 'REAL'}
+    }.items():
+        existing = {row[1] for row in cursor.execute(f'PRAGMA table_info({table})')}
+        for name, sql_type in columns.items():
+            if name not in existing:
+                cursor.execute(f'ALTER TABLE {table} ADD COLUMN {name} {sql_type}')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_video_detections_job_id ON video_detections(job_id, id)')
     conn.commit()
     conn.close()

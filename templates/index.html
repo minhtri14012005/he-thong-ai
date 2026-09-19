@@ -6,7 +6,7 @@
     <title>Hệ Thống Giám Sát & Nhận Diện AI Thông Minh</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 </head>
 <body>
 
@@ -40,20 +40,29 @@
             <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: center; background: #0f172a; padding: 10px; border-radius: 8px;">
                 <select id="camSourceSelect" class="input-control" style="width: 220px;" onchange="toggleIpInput()">
                     <option value="webcam">Webcam Laptop</option>
-                    <option value="iphone">iPhone (Iriun Cam)</option>
+                    <option value="iphone" selected>iPhone (Iriun Cam)</option>
                     <option value="ip_cam">IP Camera / URL khác</option>
                 </select>
                 <input type="text" id="iphoneIpInput" placeholder="IP hoặc URL (VD: 192.168.1.15)" class="input-control" style="width: 230px; display: none;">
                 <button type="button" class="btn btn-primary" onclick="changeCameraSource()"><i class="fa-solid fa-sync"></i> Kết Nối</button>
                 
-                <!-- Nút bật/tắt Auto-Zoom thông minh (Mặc định TỰ ĐỘNG BẬT) -->
-                <button type="button" id="autoZoomBtn" class="btn" onclick="toggleAutoZoom()" title="Tự động phóng to người ở xa và thu nhỏ về toàn cảnh khi vắng người (Bấm để chuyển chế độ)" style="background: #0284c7; color: #fff; border: 1px solid var(--primary); margin-left: auto;">
-                    <i class="fa-solid fa-expand"></i> Auto-Zoom: <b id="autoZoomText" style="color: #fff;">TỰ ĐỘNG (BẬT)</b>
+                <!-- Giữ toàn cảnh mặc định; zoom chỉ thay đổi hình hiển thị. -->
+                <button type="button" id="autoZoomBtn" class="btn" onclick="toggleAutoZoom()" title="Phóng to hiển thị; AI luôn quét ảnh gốc" style="background: #1e293b; color: var(--text-main); border: 1px solid var(--border-color); margin-left: auto;">
+                    <i class="fa-solid fa-expand"></i> Auto-Zoom: <b id="autoZoomText" style="color: var(--text-sub);">TẮT (Toàn cảnh)</b>
                 </button>
             </div>
 
+            <div id="liveMetrics" role="status" style="padding: 10px; color: var(--text-sub);">Đang chờ camera…</div>
+            <div id="livePeople" style="padding: 0 10px 10px; font-size: 0.85rem;"></div>
+            <details style="margin-bottom:12px;">
+                <summary>Thiết lập vùng quan sát</summary>
+                <p style="font-size:0.85rem;color:var(--text-sub);">Nhập tọa độ theo % khung hình gốc, gốc ở góc trên trái. Các vùng chỉ gắn nhãn vị trí, AI vẫn quét toàn ảnh. Nếu vùng chồng lấn, ưu tiên vùng ở trên.</p>
+                <div id="liveZoneRows"></div>
+                <button type="button" class="btn" onclick="addLiveZone()">Thêm vùng</button>
+                <button type="button" class="btn btn-primary" onclick="saveLiveZones()">Lưu vùng</button>
+            </details>
             <div class="media-container">
-                <img id="cameraStream" src="/video_feed?source=webcam&auto_zoom=true" alt="Stream đã tắt">
+                <img id="cameraStream"  alt="Stream đã tắt">
             </div>
 
 
@@ -103,8 +112,8 @@
                     <thead>
                         <tr>
                             <th>Tên Người</th>
-                            <th>Độ Tin Cậy</th>
-                            <th>Thời Gian</th>
+                            <th>Điểm tương đồng</th>
+                            <th>Thời gian / Bằng chứng</th>
                         </tr>
                     </thead>
                     <tbody id="logTableBody">
@@ -120,8 +129,12 @@
         <!-- Hàng điều khiển Upload + Tùy chọn Ẩn/Hiện Video -->
         <div class="card" style="padding: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                <form id="analyzeVideoForm" style="display: flex; gap: 10px; flex: 1; min-width: 320px;" onsubmit="startVideoAnalysis(event)">
+                <form id="analyzeVideoForm" style="display: flex; flex-wrap: wrap; gap: 10px; flex: 1; min-width: 280px;" onsubmit="startVideoAnalysis(event)">
                     <input type="file" id="videoFileInput" accept="video/*" class="input-control" required style="flex: 1;">
+                    <select id="videoScanMode" class="input-control" style="width:210px;" aria-label="Chế độ phân tích video">
+                        <option value="detailed" selected>Quét kỹ</option>
+                        <option value="fast">Quét nhanh</option>
+                    </select>
                     <button type="submit" id="analyzeBtn" class="btn btn-primary" style="white-space: nowrap; padding: 10px 18px;">
                         <i class="fa-solid fa-microchip"></i> Bắt Đầu Phân Tích AI
                     </button>
@@ -133,6 +146,19 @@
                 </button>
             </div>
 
+            <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap;">
+                <label><input id="videoAlertSound" type="checkbox" onchange="prepareVideoSound()"> Âm báo khi xác nhận người cần tìm</label>
+                <span style="color:var(--text-sub);font-size:0.85rem;">Danh sách tìm kiếm được chốt lúc bắt đầu. Kết quả xuất hiện trong lúc quét.</span>
+            </div>
+            <details style="margin-top:12px;">
+                <summary>Vùng trong video (tùy chọn)</summary>
+                <p style="font-size:0.85rem;color:var(--text-sub);">Đặt tên vùng tùy theo không gian của bạn, với tọa độ % ảnh gốc: trái, trên, phải, dưới. Dùng cho video có góc quay cố định; vùng chồng lấn ưu tiên từ trên xuống. Chưa khai báo sẽ ghi Toàn cảnh.</p>
+                <div id="videoZoneRows"></div>
+                <button type="button" class="btn" onclick="addVideoZone()">Thêm vùng video</button>
+            </details>
+            <div id="videoWatchlist" style="margin-top:10px;color:var(--text-sub);font-size:0.85rem;"></div>
+            <div id="videoAlertBanner" role="status" aria-live="polite" style="margin-top:10px;color:var(--success);"></div>
+            <div id="videoAnalysisWarning" style="margin-top:8px;color:var(--warning);"></div>
             <!-- Hộp tiến trình phân tích -->
             <div id="videoProgressBox" class="progress-box">
                 <div class="progress-header">
@@ -161,7 +187,7 @@
                     </video>
                 </div>
                 <div style="margin-top: 10px; font-size: 0.82rem; color: var(--text-sub); text-align: center;">
-                    <i class="fa-solid fa-circle-info"></i> Video chuẩn 60FPS. <b>Nhấp vào bất kỳ ảnh nào bên phải</b> để video tự động nhảy tới khoảnh khắc đó!
+                    <i class="fa-solid fa-circle-info"></i> <b>Nhấp ảnh mặt để phóng to</b>; bấm mốc thời gian để xem lại video. Điểm tương đồng không phải xác suất đúng.
                 </div>
             </div>
 
@@ -233,10 +259,11 @@
     </div>
 
     <!-- Modular JavaScript Scripts -->
-    <script src="/static/js/app.js"></script>
-    <script src="/static/js/stream.js"></script>
-    <script src="/static/js/logs.js"></script>
-    <script src="/static/js/analysis.js"></script>
-    <script src="/static/js/persons.js"></script>
+    <script src="{{ asset_url('js/app.js') }}"></script>
+    <script src="{{ asset_url('js/stream.js') }}"></script>
+    <script src="{{ asset_url('js/live.js') }}"></script>
+    <script src="{{ asset_url('js/logs.js') }}"></script>
+    <script src="{{ asset_url('js/analysis.js') }}"></script>
+    <script src="{{ asset_url('js/persons.js') }}"></script>
 </body>
 </html>

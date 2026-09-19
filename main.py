@@ -27,10 +27,17 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
+def asset_url(relative_path):
+    version = os.stat(os.path.join(BASE_DIR, 'static', relative_path)).st_mtime_ns
+    return f'/static/{relative_path}?v={version}'
+
+
 @app.on_event("startup")
 def startup_event():
     """Khởi tạo CSDL và Warm-up mô hình AI khi khởi động server"""
     init_db()
+    from db.jobs_repo import mark_interrupted_video_jobs
+    mark_interrupted_video_jobs()
 
     # Pre-warming mô hình AI trên GPU (Khởi tạo sẵn & JIT compilation để nhận diện tức thì ngay frame 1)
     print("\n" + "=" * 60)
@@ -42,6 +49,8 @@ def startup_event():
         # Chạy forward pass với dummy frame để CUDA cấp phát VRAM và biên dịch kernel sẵn
         dummy_frame = np.zeros((720, 1280, 3), dtype=np.uint8)
         engine.process_frame(dummy_frame)
+        # Warm both live detector input sizes before accepting a camera frame.
+        engine.process_frame_live(np.zeros((1080, 1920, 3), dtype=np.uint8))
         print("[Startup] >>> AI Engine Warm-up HOAN TAT! San sang nhan dien tuc thi.")
     except Exception as e:
         print(f"[Startup Warning] Loi khi warm-up AI Engine: {e}")
@@ -51,7 +60,14 @@ def startup_event():
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     """Trang chủ giao diện điều khiển giám sát AI"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, 'asset_url': asset_url},
+                                      headers={'Cache-Control': 'no-cache'})
+
+
+@app.on_event('shutdown')
+def shutdown_event():
+    from services.stream_service import stream_service
+    stream_service.stop()
 
 
 # Đăng ký các APIRouter module hóa

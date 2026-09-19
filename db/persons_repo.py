@@ -97,3 +97,16 @@ def load_all_embeddings():
         known_faces[name].append(emb)
 
     return known_faces
+
+
+def load_live_gallery():
+    """Keep disabled identities in comparisons to reject ambiguous matches."""
+    init_db()
+    conn = get_db()
+    try:
+        rows = conn.execute('''SELECT p.id, p.name, p.search_enabled, e.embedding
+                               FROM persons p JOIN face_embeddings e ON p.id=e.person_id''').fetchall()
+        return [(int(r['id']), r['name'], bool(r['search_enabled']),
+                 np.array(json.loads(r['embedding']), dtype=np.float32)) for r in rows]
+    finally:
+        conn.close()

@@ -14,7 +14,7 @@ async function toggleAutoZoom() {
             txt.innerText = 'TỰ ĐỘNG (BẬT)';
             txt.style.color = '#fff';
         }
-        showToast('🔍 Đã BẬT Auto-Zoom: Tự động bắt nét khoảng cách (Không gián đoạn video)');
+        showToast('Đã bật phóng to hiển thị. AI vẫn quét toàn ảnh gốc.');
     } else {
         if (btn) {
             btn.style.borderColor = 'var(--border-color)';
@@ -37,10 +37,10 @@ async function toggleAutoZoom() {
 }
 
 
-function stopStream() {
+async function stopStream() {
     const streamImg = document.getElementById('cameraStream');
-    if (streamImg) streamImg.src = "";
-    fetch('/api/control_stream?action=stop', { method: 'POST' });
+    if (streamImg) streamImg.removeAttribute('src');
+    await fetch('/api/control_stream?action=stop', { method: 'POST' });
 }
 
 function toggleIpInput() {
@@ -51,20 +51,47 @@ function toggleIpInput() {
     }
 }
 
-function changeCameraSource() {
+let isSwitchingCamera = false;
+
+async function changeCameraSource() {
     const select = document.getElementById('camSourceSelect');
-    if (!select) return;
+    if (!select || isSwitchingCamera) return;
 
     const source = select.value;
     const ip = document.getElementById('iphoneIpInput') ? document.getElementById('iphoneIpInput').value.trim() : '';
     if (source === 'ip_cam' && !ip) return alert('Vui lòng nhập IP hoặc URL Camera!');
 
-    currentSource = source;
+    isSwitchingCamera = true;
+    select.disabled = true;
+
     const streamImg = document.getElementById('cameraStream');
-    if (streamImg) {
-        streamImg.src = `/video_feed?source=${source}&ip=${encodeURIComponent(ip)}&auto_zoom=${autoZoomEnabled}&t=${new Date().getTime()}`;
+    const sourceLabel = source === 'iphone' ? 'iPhone (Iriun Cam)' : (source === 'webcam' ? 'Webcam Laptop' : 'IP Camera');
+    showToast(`🔄 Đang chuyển sang ${sourceLabel}...`);
+
+    try {
+        // 1. Gọi backend để giải phóng an toàn camera cũ trước khi mở camera mới
+        if (streamImg) streamImg.removeAttribute('src');
+        const response = await fetch(`/api/switch_camera?source=${source}&ip=${encodeURIComponent(ip)}`, { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok || result.status !== 'success') throw new Error(result.detail || 'Không mở được camera');
+
+        // 2. Cập nhật luồng stream mới với timestamp chống cache
+        if (streamImg) {
+            streamImg.src = `/video_feed?source=${source}&ip=${encodeURIComponent(ip)}&auto_zoom=${autoZoomEnabled}&t=${Date.now()}`;
+        }
+        currentSource = source;
+        isPausedState = false;
+        document.getElementById('pauseBtn').textContent = 'Tạm Dừng';
+        showToast(`✅ Đã kết nối: ${sourceLabel}`);
+    } catch (err) {
+        console.error('Lỗi khi chuyển camera:', err);
+        showToast('Lỗi kết nối: ' + err.message, true);
+    } finally {
+        isSwitchingCamera = false;
+        select.disabled = false;
     }
 }
+
 
 async function togglePause() {
     const action = isPausedState ? "resume" : "pause";

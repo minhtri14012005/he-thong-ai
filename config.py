@@ -25,10 +25,9 @@ SIMILARITY_THRESHOLD = 0.45
 USE_GPU = True
 GPU_DEVICE_ID = 0
 
-# Kích thước khung hình xử lý AI (Tối ưu cho Camera 2K iPhone 13 & Bắt mặt nhỏ tầm xa phòng học)
-# Với RTX 4050 6GB VRAM, (1280, 1280) giúp nhận diện cực kỳ sắc nét các khuôn mặt ở xa bàn cuối
-DET_SIZE = (1280, 1280)
-DET_THRESH = 0.40
+# Kích thước khung hình xử lý AI cho Camera thời gian thực (Chuẩn SCRFD 640x640 tối ưu tốc độ và bắt nét mọi cự ly)
+DET_SIZE = (640, 640)
+DET_THRESH = 0.35
 
 # Cấu hình quét tầm xa cho Video Upload (High-Res & Classroom Patch Zoom)
 VIDEO_DET_SIZE = (1280, 1280)
@@ -38,9 +37,9 @@ ENABLE_PATCH_ZOOM_SCAN = True
 DEFAULT_WEBCAM_INDEX = 1  # Webcam Laptop (ACER HD User Facing)
 DEFAULT_IRIUN_INDEX = 0   # iPhone qua Iriun Webcam
 
-# Thiết lập độ phân giải mong muốn khi mở Camera (Hỗ trợ 2K cho iPhone 13 / Iriun)
-IPHONE_CAM_WIDTH = 2560
-IPHONE_CAM_HEIGHT = 1440
+# Thiết lập độ phân giải thu nhận Camera (1080p mượt mà cho Iriun, 720p cho Webcam)
+IPHONE_CAM_WIDTH = 1920
+IPHONE_CAM_HEIGHT = 1080
 WEBCAM_WIDTH = 1280
 WEBCAM_HEIGHT = 720
 
@@ -51,6 +50,30 @@ TRACKER_IOU_THRESH = 0.30  # Ngưỡng khớp IoU giữa các frame
 RECOGNIZE_INTERVAL = 10    # Định kỳ sau 10 frames mới trích xuất lại ArcFace để tối ưu tải GPU
 
 # Cấu hình Tự Động Zoom Kỹ Thuật Số (Smart Auto-Zoom)
-DEFAULT_AUTO_ZOOM = True   # Mặc định luôn tự động bật Auto-Zoom (không cần bật/tắt thủ công)
+DEFAULT_AUTO_ZOOM = False  # Giữ toàn cảnh; zoom chỉ phục vụ hiển thị.
 
-
+# Tham số khởi đầu cho live, cần hiệu chỉnh bằng dữ liệu tại lớp.
+LIVE_DET_SIZE = (1280, 1280)
+LIVE_MATCH_THRESHOLD = 0.50
+LIVE_MATCH_MARGIN = 0.08
+LIVE_MIN_FACE_PIXELS = 40
+LIVE_MIN_SHARPNESS = 35.0
+LIVE_CONFIRM_HITS = 3
+LIVE_CONFIRM_WINDOW = 5
+LIVE_CONFIRM_SECONDS = 2.5
+LIVE_TRACK_TTL = 1.5
+LIVE_CAMERA_STALE_SECONDS = 2.0
+LIVE_REENTRY_SECONDS = 15.0
+LIVE_TARGET_AI_FPS = 10.0
+
+# Video được phân tích theo thời gian trong file, không theo tốc độ xử lý của máy.
+VIDEO_SCAN_PROFILES = {
+    'fast': {'sample_fps': 3.0, 'burst_fps': 8.0, 'all_tiles': False, 'tile_size': 640},
+    'detailed': {'sample_fps': 4.0, 'burst_fps': 8.0, 'all_tiles': True, 'tile_size': 960},
+}
+# Tương thích các yêu cầu API cũ; giao diện dùng tên chung "Quét kỹ".
+VIDEO_SCAN_PROFILES['classroom'] = VIDEO_SCAN_PROFILES['detailed']
+VIDEO_REENTRY_SECONDS = 5.0
+VIDEO_BURST_HOLD_SECONDS = 1.0
+
+

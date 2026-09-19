@@ -1,9 +1,10 @@
 import os
 import tempfile
-from fastapi import APIRouter, UploadFile, File, Query
+from fastapi import APIRouter, UploadFile, File, Query, Body, HTTPException
 from fastapi.responses import StreamingResponse
 from config import DEFAULT_AUTO_ZOOM
 from services.stream_service import stream_service
+from core.live_zones import save_zones
 
 router = APIRouter(tags=["Stream"])
 
@@ -20,6 +21,33 @@ def control_stream(action: str = Query(...)):
     elif action == "stop":
         stream_service.stop()
     return {"status": "success", "is_paused": stream_service.is_paused}
+
+
+@router.post("/api/switch_camera")
+def switch_camera(source: str = Query("iphone"), ip: str = Query("")):
+    """Chuyển đổi nguồn camera an toàn, giải phóng camera cũ trước khi mở camera mới"""
+    try:
+        success = stream_service.switch_camera_source(source=source, ip=ip)
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if not success:
+        raise HTTPException(status_code=503, detail="Không mở được camera. Kiểm tra kết nối Iriun.")
+    return {"status": "success", "source": source}
+
+
+@router.get('/api/live/status')
+def live_status():
+    return stream_service.status()
+
+
+@router.put('/api/live/zones')
+def update_live_zones(zones: list = Body(...)):
+    try:
+        stream_service.zones = save_zones(zones)
+    except (ValueError, TypeError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {'zones': stream_service.zones}
+
 
 
 @router.post("/api/set_auto_zoom")
@@ -46,10 +74,9 @@ async def upload_video_api(file: UploadFile = File(...)):
 
 
 @router.get("/video_feed")
-def video_feed(source: str = Query("webcam"), ip: str = Query(""), auto_zoom: bool = Query(DEFAULT_AUTO_ZOOM)):
+def video_feed(source: str = Query("iphone"), ip: str = Query(""), auto_zoom: bool = Query(DEFAULT_AUTO_ZOOM)):
     """Endpoint sinh luồng MJPEG thời gian thực có áp dụng Auto-Zoom và AI Detection"""
     return StreamingResponse(
         stream_service.generate_video_stream(source=source, ip=ip, auto_zoom=auto_zoom),
         media_type='multipart/x-mixed-replace; boundary=frame'
     )
-

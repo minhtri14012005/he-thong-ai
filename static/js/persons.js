@@ -16,20 +16,23 @@ async function loadPersons() {
         grid.innerHTML = data.persons.map(p => `
             <div class="person-card">
                 <div class="person-info">
-                    <h3><i class="fa-solid fa-user-tag" style="color: var(--primary);"></i> ${p.name}</h3>
+                    <h3><i class="fa-solid fa-user-tag" style="color: var(--primary);"></i> ${escapeLive(p.name)}</h3>
                     <p>Số mẫu ảnh: <b style="color: var(--primary);">${p.sample_count}</b></p>
                 </div>
 
-                <input type="file" id="addMoreInput_${p.id}" accept="image/*" multiple style="display: none;" onchange="uploadMoreImages(${p.id}, '${p.name}')">
+                <input type="file" id="addMoreInput_${p.id}" accept="image/*" multiple style="display: none;" onchange="uploadMoreImages(${p.id}, ${escapeLive(JSON.stringify(p.name))})">
 
                 <div class="person-actions">
+                    <button class="btn ${p.search_enabled ? 'btn-primary' : ''}" onclick="togglePersonSearch(${p.id}, ${!p.search_enabled})">
+                        ${p.search_enabled ? 'Đang tìm • Bấm để tắt' : 'Đã tắt tìm • Bấm để bật'}
+                    </button>
                     <button class="btn btn-success" onclick="document.getElementById('addMoreInput_${p.id}').click()">
                         <i class="fa-solid fa-plus"></i> Thêm ảnh
                     </button>
-                    <button class="btn btn-warning" onclick="openManageModal(${p.id}, '${p.name}')">
+                    <button class="btn btn-warning" onclick="openManageModal(${p.id}, ${escapeLive(JSON.stringify(p.name))})">
                         <i class="fa-solid fa-images"></i> Quản lý ảnh mẫu
                     </button>
-                    <button class="btn btn-primary" onclick="renamePerson(${p.id}, '${p.name}')">
+                    <button class="btn btn-primary" onclick="renamePerson(${p.id}, ${escapeLive(JSON.stringify(p.name))})">
                         <i class="fa-solid fa-pen"></i> Đổi tên
                     </button>
                     <button class="btn btn-danger" onclick="deletePerson(${p.id})">
@@ -41,6 +44,14 @@ async function loadPersons() {
     } catch (err) {
         grid.innerHTML = `<p style="color: var(--danger); text-align: center;">Lỗi tải dữ liệu: ${err.message}</p>`;
     }
+}
+
+async function togglePersonSearch(id, enabled) {
+    try {
+        const res = await fetch(`/api/persons/${id}/search?enabled=${enabled}`, {method: 'PUT'});
+        if (!res.ok) throw new Error('Không cập nhật được danh sách tìm kiếm');
+        await loadPersons();
+    } catch (error) { showToast(error.message, true); }
 }
 
 async function openManageModal(personId, personName) {

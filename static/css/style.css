@@ -473,7 +473,7 @@ th { background: #0f172a; color: var(--text-sub); position: sticky; top: 0; }
 /* Thẻ ảnh chụp khuôn mặt tại mỗi khoảnh khắc */
 .moment-card {
     flex-shrink: 0;
-    width: 95px;
+    width: 192px;
     background: #1e293b;
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -497,15 +497,47 @@ th { background: #0f172a; color: var(--text-sub); position: sticky; top: 0; }
 .moment-img-wrapper {
     position: relative;
     width: 100%;
-    height: 85px;
+    height: 192px;
     background: #0f172a;
 }
 .moment-img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
 }
+.moment-snapshot-button {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: zoom-in;
+}
+.moment-snapshot-button[hidden], .moment-image-error[hidden] { display: none; }
+.moment-image-error {
+    height: 100%;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    color: var(--text-sub);
+    font-size: 0.82rem;
+}
+.moment-details {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+}
+.moment-details .btn { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.moment-details a { color: var(--primary); text-underline-offset: 3px; }
 .moment-play-overlay {
     position: absolute;
     inset: 0;
