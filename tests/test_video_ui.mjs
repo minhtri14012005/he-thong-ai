@@ -11,6 +11,10 @@ export async function runVideoUiTests(root) {
         get id() { return this._id; }
         append(...values) { this.children.push(...values); }
         appendChild(value) { this.append(value); }
+        insertBefore(value, next) {
+            const index = next == null ? -1 : this.children.indexOf(next);
+            this.children.splice(index < 0 ? this.children.length : index, 0, value);
+        }
         replaceChildren(...values) { this.children=values; }
         load() {}
         play() { return Promise.resolve(); }
@@ -59,16 +63,33 @@ export async function runVideoUiTests(root) {
     assert.equal(toasts.length,2,'new appearance alerts again');
     vm.runInContext("applyAppearanceUpdates([{id:2,last_seen_sec:9.25,last_zone:'Desks'}])",context);
     assert.match(document.getElementById('video-last-2').textContent,/00:09.250.*Desks/);
+    const sample = {...event, id:10, detection_id:1, timestamp_sec:2.5, timestamp_str:'00:02.500',
+        snapshot_path:'static/snapshots/extra.jpg', scene_path:'static/snapshots/extra-scene.jpg', kind:'interval'};
+    const finalSample = {...sample, id:11, timestamp_sec:3.75, timestamp_str:'00:03.750', kind:'last'};
+    context.samples = [sample, finalSample, sample];
+    vm.runInContext('handleVideoSnapshots(samples)',context);
+    assert.equal(toasts.length,2,'extra photos do not trigger appearance notifications');
+    assert.equal(document.getElementById('detectedCountBadge').textContent,'2 lượt xuất hiện');
+    assert.equal(card.children[0].children[1].textContent,'2 lượt · 4 ảnh');
+    assert.deepEqual(card.children[1].children.map(c => c.children[1].children[0].textContent),
+        ['00:00.500','00:02.500','00:03.750','00:08.000'],'photos stay chronological even when appearances arrive first');
+    assert.equal(card.children[1].children[2].children[1].children[3].textContent,'Lượt 1 · Ảnh cuối');
+    card.children[1].children[1].children[1].children[0].onclick();
+    assert.equal(document.getElementById('html5VideoPlayer').currentTime,2.5);
+    card.children[1].children[1].children[0].children[0].onclick();
+    assert.equal(document.getElementById('photoModalImg').src,'/static/snapshots/extra.jpg');
     assert.equal(vm.runInContext("videoSnapshotPath('https://example.com/image.jpg')",context),'');
     for (const input of ['static/snapshots/a.jpg','/static/snapshots/a.jpg','//static/snapshots/a.jpg']) {
         context.testPath=input;
         assert.equal(vm.runInContext('videoSnapshotPath(testPath)',context),'/static/snapshots/a.jpg');
     }
     context.fetch=async()=>({ok:true,status:200,json:async()=>({status:'processing',progress:50,last_id:2,
-        new_detections:[],appearance_updates:[],scanned_until_sec:10,scanned_frames:20})});
+        new_detections:[],new_snapshots:[sample],last_snapshot_id:11,appearance_updates:[],scanned_until_sec:10,scanned_frames:20})});
     await vm.runInContext('pollVideoEvents()',context);
     assert.equal(timers.length,1,'one next poll, not overlapping intervals');
     assert.equal(context.lastDetectionId,2);
+    assert.equal(vm.runInContext('lastVideoSnapshotId',context),11);
+    assert.equal(card.children[1].children.length,4,'poll retries do not duplicate photos');
     context.fetch=async()=>({ok:true,status:200,json:async()=>({status:'error',progress:50,last_id:2,
         new_detections:[],error_message:'Damaged file'})});
     await vm.runInContext('pollVideoEvents()',context);

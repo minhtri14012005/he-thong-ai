@@ -106,5 +106,21 @@ def init_db():
             if name not in existing:
                 cursor.execute(f'ALTER TABLE {table} ADD COLUMN {name} {sql_type}')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_video_detections_job_id ON video_detections(job_id, id)')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS video_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            detection_id INTEGER NOT NULL,
+            timestamp_sec REAL NOT NULL,
+            timestamp_str TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            snapshot_path TEXT NOT NULL,
+            scene_path TEXT NOT NULL,
+            zone TEXT,
+            kind TEXT NOT NULL,
+            UNIQUE(detection_id, timestamp_sec),
+            FOREIGN KEY (detection_id) REFERENCES video_detections(id) ON DELETE CASCADE
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_video_snapshots_detection ON video_snapshots(detection_id, id)')
     conn.commit()
     conn.close()

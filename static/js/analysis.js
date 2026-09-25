@@ -4,6 +4,8 @@ let videoBusy = false;
 let videoEventItems = new Map();
 let videoPeople = new Map();
 let videoAudio = null;
+let videoSnapshotIds = new Set();
+let lastVideoSnapshotId = 0;
 
 function toggleVideoPlayer(forceState = null) {
     isVideoPlayerVisible = forceState === null ? !isVideoPlayerVisible : forceState;
@@ -71,6 +73,7 @@ async function startVideoAnalysis(event) {
     currentJobId = null; lastDetectionId = 0;
     clearTimeout(pollInterval);
     videoEventItems.clear(); videoPeople.clear();
+    videoSnapshotIds.clear(); lastVideoSnapshotId = 0;
     document.getElementById('personGalleriesContainer').textContent = 'Đang chờ các lượt xuất hiện được xác nhận…';
     document.getElementById('totalPeopleBadge').textContent = '0 người';
     document.getElementById('detectedCountBadge').textContent = '0 lượt xuất hiện';
@@ -117,7 +120,7 @@ async function pollVideoEvents(jobId = currentJobId, run = videoRun) {
     if (!jobId || jobId !== currentJobId || run !== videoRun) return;
     let terminal = false;
     try {
-        const response = await fetch(`/api/video_analysis/${jobId}/events?last_id=${lastDetectionId}`);
+        const response = await fetch(`/api/video_analysis/${jobId}/events?last_id=${lastDetectionId}&last_snapshot_id=${lastVideoSnapshotId}`);
         if (response.status === 404) { terminal = true; throw new Error('Không tìm thấy lần phân tích này'); }
         if (!response.ok) throw new Error('Mất kết nối, đang thử lấy kết quả lại…');
         const data = await response.json();
@@ -130,7 +133,9 @@ async function pollVideoEvents(jobId = currentJobId, run = videoRun) {
             : `Đã quét tới ${formatVideoTime(data.scanned_until_sec || 0)} · ${data.scanned_frames || 0} khung phân tích · ${Number(data.elapsed_sec || 0).toFixed(1)} giây xử lý`;
         document.getElementById('videoAnalysisWarning').textContent = data.warning_message || '';
         handleNewDetections(data.new_detections || []);
+        handleVideoSnapshots(data.new_snapshots || []);
         lastDetectionId = Math.max(lastDetectionId, data.last_id || 0);
+        lastVideoSnapshotId = Math.max(lastVideoSnapshotId, data.last_snapshot_id || 0);
         applyAppearanceUpdates(data.appearance_updates || []);
         if (data.status === 'completed' || data.status === 'error') {
             terminal = true;
@@ -168,7 +173,7 @@ function createVideoSnapshot(item, facePath) {
     open.title = 'Xem ảnh khuôn mặt';
     const image = document.createElement('img');
     image.className = 'moment-img'; image.loading = 'eager'; image.decoding = 'async';
-    image.width = 192; image.height = 192;
+    image.width = 140; image.height = 140;
     image.alt = `${item.person_name} tại ${item.timestamp_str}`;
     open.onclick = () => viewSnapshot(facePath, item.person_name, item.timestamp_str, item.confidence);
     open.appendChild(image);
@@ -195,7 +200,7 @@ function handleNewDetections(detections) {
     for (const item of detections) {
         if (videoEventItems.has(item.id)) continue;
         if (!videoEventItems.size) container.replaceChildren();
-        videoEventItems.set(item.id, {...item}); newCount++;
+        newCount++;
         const key = item.person_id == null ? item.person_name : String(item.person_id);
         let person = videoPeople.get(key);
         if (!person) {
@@ -205,26 +210,12 @@ function handleNewDetections(detections) {
             const count = document.createElement('span'); count.className = 'count-badge';
             const strip = document.createElement('div'); strip.className = 'moment-strip';
             header.append(title, count); card.append(header, strip); container.appendChild(card);
-            person = {count:0, badge:count, strip}; videoPeople.set(key, person);
+            person = {count:0, badge:count, strip, moments:[]}; videoPeople.set(key, person);
         }
-        person.count++; person.badge.textContent = `${person.count} lượt`;
-        const card = document.createElement('div'); card.className = 'moment-card new-pulse';
-        const facePath = videoSnapshotPath(item.snapshot_path || item.face_path);
-        card.appendChild(createVideoSnapshot(item, facePath));
-        const details = document.createElement('div'); details.className = 'moment-details';
-        const time = document.createElement('button'); time.type = 'button'; time.className = 'btn';
-        time.textContent = item.timestamp_str;
-        time.onclick = () => seekVideo(item.timestamp_sec, item.person_name, item.timestamp_str);
-        const score = document.createElement('div'); score.textContent = `Điểm khớp: ${Number(item.confidence).toFixed(3)}`;
-        const zone = document.createElement('div'); zone.textContent = item.zone || 'Toàn cảnh';
-        const last = document.createElement('div'); last.id = `video-last-${item.id}`; last.style.fontSize = '0.75rem';
-        details.append(time, score, zone, last);
-        for (const [path,label] of [[facePath,'Ảnh mặt'],[videoSnapshotPath(item.scene_path),'Toàn cảnh']]) {
-            if (!path) continue;
-            const link = document.createElement('a'); link.href = path; link.target = '_blank'; link.rel = 'noopener';
-            link.textContent = label; link.style.marginRight = '8px'; details.appendChild(link);
-        }
-        card.appendChild(details); person.strip.appendChild(card);
+        person.count++;
+        const appearance = {...item, personKey:key, appearanceNumber:person.count};
+        videoEventItems.set(item.id, appearance);
+        appendVideoMoment(person, item, appearance, true);
         applyAppearanceUpdates([{id:item.id,last_seen_sec:item.last_seen_sec ?? item.timestamp_sec,last_zone:item.last_zone || item.zone}]);
         const message = `Đã xác nhận ${item.person_name} tại ${item.timestamp_str} · ${item.zone || 'Toàn cảnh'}`;
         showToast(message); document.getElementById('videoAlertBanner').textContent = message;
@@ -232,6 +223,46 @@ function handleNewDetections(detections) {
     if (newCount) playVideoAlert();
     document.getElementById('totalPeopleBadge').textContent = `${videoPeople.size} người`;
     document.getElementById('detectedCountBadge').textContent = `${videoEventItems.size} lượt xuất hiện`;
+}
+
+function appendVideoMoment(person, item, appearance, initial = false) {
+    const card = document.createElement('div'); card.className = 'moment-card new-pulse';
+    const facePath = videoSnapshotPath(item.snapshot_path || item.face_path);
+    card.appendChild(createVideoSnapshot(item, facePath));
+    const details = document.createElement('div'); details.className = 'moment-details';
+    const time = document.createElement('button'); time.type = 'button'; time.className = 'btn';
+    time.textContent = item.timestamp_str;
+    time.onclick = () => seekVideo(item.timestamp_sec, item.person_name, item.timestamp_str);
+    const score = document.createElement('div'); score.textContent = `Điểm khớp: ${Number(item.confidence).toFixed(3)}`;
+    const zone = document.createElement('div'); zone.textContent = item.zone || 'Toàn cảnh';
+    const label = document.createElement('div'); label.className = 'moment-appearance-label';
+    label.textContent = `Lượt ${appearance.appearanceNumber} · ${initial ? 'Ảnh đầu' : item.kind === 'last' ? 'Ảnh cuối' : 'Ảnh bổ sung'}`;
+    details.append(time, score, zone, label);
+    if (initial) {
+        const last = document.createElement('div'); last.id = `video-last-${appearance.id}`; last.style.fontSize = '0.75rem';
+        details.appendChild(last);
+    }
+    for (const [path, text] of [[facePath, 'Ảnh mặt'], [videoSnapshotPath(item.scene_path), 'Toàn cảnh']]) {
+        if (!path) continue;
+        const link = document.createElement('a'); link.href = path; link.target = '_blank'; link.rel = 'noopener';
+        link.textContent = text; link.style.marginRight = '8px'; details.appendChild(link);
+    }
+    card.appendChild(details);
+    const index = person.moments.findIndex(moment => moment.seconds > item.timestamp_sec);
+    person.strip.insertBefore(card, index < 0 ? null : person.moments[index].card);
+    person.moments.splice(index < 0 ? person.moments.length : index, 0, {seconds:item.timestamp_sec, card});
+    person.badge.textContent = `${person.count} lượt · ${person.moments.length} ảnh`;
+}
+
+function handleVideoSnapshots(snapshots) {
+    for (const sample of snapshots) {
+        if (videoSnapshotIds.has(sample.id)) continue;
+        const appearance = videoEventItems.get(sample.detection_id);
+        if (!appearance) continue;
+        const person = videoPeople.get(appearance.personKey);
+        appendVideoMoment(person, {...sample, person_name:appearance.person_name}, appearance);
+        videoSnapshotIds.add(sample.id);
+    }
 }
 
 function applyAppearanceUpdates(updates) {

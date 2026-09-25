@@ -80,6 +80,36 @@ def get_video_job(job_id: str):
     return None
 
 
+def add_video_snapshot(detection_id, timestamp_sec, timestamp_str, confidence,
+                       snapshot_path, scene_path, zone, kind):
+    """Save extra evidence without creating another appearance or notification."""
+    with closing(get_db()) as conn, conn:
+        cursor = conn.execute('''INSERT INTO video_snapshots
+            (detection_id, timestamp_sec, timestamp_str, confidence, snapshot_path, scene_path, zone, kind)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+            (detection_id, timestamp_sec, timestamp_str, float(confidence), snapshot_path, scene_path, zone, kind))
+        return cursor.lastrowid
+
+
+def get_video_snapshots_since(job_id, last_id=0, max_detection_id=None):
+    # Only return samples whose parent appearance was included in this poll (or an earlier one).
+    query = '''SELECT s.*, d.person_id, d.person_name FROM video_snapshots s
+               JOIN video_detections d ON d.id=s.detection_id
+               WHERE d.job_id=? AND s.id>?'''
+    params = [job_id, last_id]
+    if max_detection_id is not None:
+        # A new parent and its samples can commit between the poll's two reads.
+        # Stop at its first sample so advancing the cursor cannot skip those photos.
+        query += ''' AND s.id < COALESCE((
+            SELECT MIN(pending.id) FROM video_snapshots pending
+            JOIN video_detections parent ON parent.id=pending.detection_id
+            WHERE parent.job_id=? AND parent.id>?
+        ), 9223372036854775807)'''
+        params.extend([job_id, max_detection_id])
+    with closing(get_db()) as conn:
+        return [serialize_video_detection(row) for row in conn.execute(query + ' ORDER BY s.id', params)]
+
+
 def get_video_detections_since(job_id: str, last_id: int = 0):
     """Lấy danh sách các phát hiện mới hơn last_id để đẩy realtime ra Web"""
     conn = get_db()
@@ -120,7 +150,8 @@ def get_job_summary(job_id: str):
 
     return {
         "summary": [dict(r) for r in summary_rows],
-        "all_detections": [serialize_video_detection(r) for r in all_detections]
+        "all_detections": [serialize_video_detection(r) for r in all_detections],
+        "snapshots": get_video_snapshots_since(job_id)
     }
 
 

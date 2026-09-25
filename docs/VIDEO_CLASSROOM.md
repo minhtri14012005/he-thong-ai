@@ -53,8 +53,13 @@ Mặt đã phát hiện được căn chỉnh/trích đặc trưng từ pixel �
 - Một người hiện liên tục tạo một lượt. Các lần xác nhận mới cập nhật mốc thấy cuối
   và vùng cuối, không tạo thêm âm báo. Mất xác nhận quá 5 giây video rồi nhận lại sẽ
   tạo lượt mới. Đây không chứng minh người đó đã rời khỏi phòng.
-- Bằng chứng ban đầu giữ nguyên. Mốc xác nhận khác với mốc đầu tiên nhìn thấy track;
-  cả hai được lưu. Theo dõi mất dấu/Unknown không kéo dài lần nhìn thấy cuối.
+- Mỗi lượt lưu ảnh mặt và toàn cảnh ở lần xác nhận đầu, thêm ảnh khoảng mỗi 2 giây
+  video (`VIDEO_SNAPSHOT_INTERVAL_SECONDS`), rồi lưu lần xác nhận cuối khi lượt kết thúc
+  hoặc video quét xong. Nếu lần cuối đã được chụp định kỳ thì không tạo ảnh trùng.
+  Ảnh bổ sung có mốc thời gian, điểm khớp và vùng riêng, hiện ngay trong dải ảnh cùng người;
+  không tạo thêm lượt xuất hiện hoặc âm báo. Mốc xác nhận khác với mốc đầu tiên nhìn thấy
+  track; cả hai được lưu. Mất dấu/Unknown không tạo ảnh hoặc kéo dài lần nhìn thấy cuối.
+  Kết quả video cũ vẫn giữ ảnh đã lưu; tải lên và phân tích lại để có chuỗi ảnh mới.
 - Nếu file lỗi, mô hình lỗi hoặc lưu bằng chứng thất bại, job báo lỗi và giữ kết quả
   đã xác nhận trước đó. Không báo 100% hoàn tất cho file không đọc được hoặc bị thiếu
   đáng kể số frame so với metadata. Có thể có cảnh báo metadata nếu file khai báo sai.

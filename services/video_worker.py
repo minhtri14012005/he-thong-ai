@@ -6,7 +6,7 @@ import zlib
 import cv2
 from config import (VIDEO_SCAN_PROFILES, VIDEO_BURST_HOLD_SECONDS, VIDEO_REENTRY_SECONDS,
                     LIVE_MIN_FACE_PIXELS, LIVE_MIN_SHARPNESS, LIVE_CONFIRM_HITS,
-                    LIVE_CONFIRM_WINDOW, LIVE_CONFIRM_SECONDS)
+                    LIVE_CONFIRM_WINDOW, LIVE_CONFIRM_SECONDS, VIDEO_SNAPSHOT_INTERVAL_SECONDS)
 from core.engine import get_ai_engine
 from core.gallery import GallerySnapshot
 from core.live_tracker import LiveTracker
@@ -22,7 +22,8 @@ def video_settings(gallery, mode, zones):
             'zones': zones, 'model': 'buffalo_l', 'min_face_pixels': LIVE_MIN_FACE_PIXELS,
             'min_sharpness': LIVE_MIN_SHARPNESS, 'confirm_hits': LIVE_CONFIRM_HITS,
             'confirm_window': LIVE_CONFIRM_WINDOW, 'confirm_seconds': LIVE_CONFIRM_SECONDS,
-            'reentry_seconds': VIDEO_REENTRY_SECONDS}
+            'reentry_seconds': VIDEO_REENTRY_SECONDS,
+            'snapshot_interval_seconds': VIDEO_SNAPSHOT_INTERVAL_SECONDS}
 
 
 def needs_dense_sampling(raw, tracked, previous):

@@ -15,6 +15,7 @@ from core.engine import HighAccuracyFaceEngine
 from db import connection
 from db.jobs_repo import (create_video_job, get_video_job, get_video_detections_since, get_job_summary,
                          mark_interrupted_video_jobs, set_video_job_details, serialize_video_detection)
+from db.jobs_repo import get_video_snapshots_since
 from services.video_worker import analyze_video_background, needs_dense_sampling
 from services.video_events import VideoEventRecorder
 from routers.analysis import router
@@ -149,6 +150,11 @@ class VideoTests(unittest.TestCase):
         self.assertLess(job['scanned_frames'],30)
         self.assertEqual(len(json.loads(job['settings_json'])['watchlist']),2)
         self.assertTrue(capture.released)
+        samples = get_video_snapshots_since('job')
+        for row in rows:
+            person_samples = [s for s in samples if s['detection_id'] == row['id']]
+            self.assertGreaterEqual(len(person_samples), 1)
+            self.assertAlmostEqual(person_samples[-1]['timestamp_sec'], row['last_seen_sec'])
 
     def test_one_off_match_does_not_create_event(self):
         def results(frame):
@@ -200,6 +206,77 @@ class VideoTests(unittest.TestCase):
                 VideoEventRecorder('job').record([face()],self.frame,1)
         self.assertEqual(get_video_detections_since('job'),[])
 
+    def test_periodic_and_final_photos_keep_one_appearance_and_actual_last_frame(self):
+        import cv2
+        recorder = VideoEventRecorder('job')
+        recorder.record([face()], self.frame, 1)
+        recorder.record([face()], self.frame, 2.1)
+        self.assertEqual(get_video_snapshots_since('job'), [])
+        recorder.record([face()], np.full_like(self.frame, 160), 3.05)
+        interval = get_video_snapshots_since('job')[0]
+        self.assertEqual(interval['kind'], 'interval')
+        self.assertEqual(interval['timestamp_sec'], 3.05)
+        recorder.record([{**face(), 'zone':'Desks', 'confidence':.85}], np.full_like(self.frame, 180), 4.2)
+        recorder.record([{**face(), 'state':'lost', 'confirmed':False}], np.full_like(self.frame, 250), 5.5)
+        self.assertEqual(len(get_video_snapshots_since('job')), 1)
+        recorder.flush(9.3)
+        recorder.flush()
+        rows, samples = get_video_detections_since('job'), get_video_snapshots_since('job')
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(len(samples), 2)
+        self.assertEqual(samples[-1]['kind'], 'last')
+        self.assertEqual(samples[-1]['timestamp_sec'], 4.2)
+        self.assertEqual(samples[-1]['zone'], 'Desks')
+        self.assertEqual(samples[-1]['confidence'], .85)
+        self.assertTrue(all(s['detection_id'] == rows[0]['id'] for s in samples))
+        last_face = cv2.imread(str(Path(self.temp.name, Path(samples[-1]['snapshot_path']).name)))
+        self.assertAlmostEqual(float(last_face.mean()), 180, delta=1)
+        self.assertEqual(rows[0]['last_seen_sec'], 4.2)
+        self.assertEqual(get_video_snapshots_since('job', interval['id']), samples[1:])
+        self.assertEqual(get_video_snapshots_since('job', max_detection_id=0), [])
+        self.assertEqual(get_video_snapshots_since('another-job'), [])
+        self.assertEqual(get_job_summary('job')['snapshots'], samples)
+        self.assertEqual(recorder.events, {})
+
+    def test_short_appearance_saves_last_photo_and_exact_interval_does_not_duplicate(self):
+        recorder = VideoEventRecorder('job')
+        recorder.record([face()], self.frame, 1)
+        recorder.record([face()], self.frame, 1.3)
+        recorder.flush()
+        self.assertEqual([s['timestamp_sec'] for s in get_video_snapshots_since('job')], [1.3])
+        recorder.record([face()], self.frame, 8)
+        recorder.record([face()], self.frame, 10)
+        recorder.flush()
+        self.assertEqual([s['timestamp_sec'] for s in get_video_snapshots_since('job')], [1.3, 10])
+        self.assertEqual(len(get_video_detections_since('job')), 2)
+
+    def test_poll_cursor_does_not_skip_photos_for_an_appearance_created_mid_poll(self):
+        recorder = VideoEventRecorder('job')
+        recorder.record([face()], self.frame, 1)
+        first_id = get_video_detections_since('job')[0]['id']
+        recorder.record([face(), face(2, x=90)], self.frame, 2)
+        recorder.record([face(2, x=90)], self.frame, 4)
+        recorder.record([face()], self.frame, 4.1)
+        # The second person's sample commits before another sample for the first person.
+        self.assertEqual(get_video_snapshots_since('job', max_detection_id=first_id), [])
+        samples = get_video_snapshots_since('job')
+        self.assertEqual([s['person_id'] for s in samples], [2, 1])
+        latest_id = get_video_detections_since('job')[-1]['id']
+        self.assertEqual(get_video_snapshots_since('job', max_detection_id=latest_id), samples)
+
+    def test_extra_photo_failure_preserves_first_photo_and_cleans_partial_files(self):
+        recorder = VideoEventRecorder('job')
+        recorder.record([face()], self.frame, 1)
+        original_files = set(Path(self.temp.name).glob('*.jpg'))
+        with patch('services.video_events.add_video_snapshot', side_effect=RuntimeError('database failed')):
+            with self.assertRaisesRegex(RuntimeError, 'database failed'):
+                recorder.record([face()], self.frame, 3)
+        self.assertEqual(set(Path(self.temp.name).glob('*.jpg')), original_files)
+        self.assertEqual(get_video_snapshots_since('job'), [])
+        self.assertEqual(len(get_video_detections_since('job')), 1)
+        recorder.flush()
+        self.assertEqual(len(get_video_snapshots_since('job')), 1)
+
     def test_restart_marks_unfinished_jobs_without_losing_events(self):
         VideoEventRecorder('job').record([face()],self.frame,1)
         create_video_job('done','done.mp4','/done.mp4')
@@ -238,6 +315,20 @@ class VideoTests(unittest.TestCase):
                 events = await client.get('/api/video_analysis/job/events')
                 self.assertEqual(events.status_code,200)
                 self.assertIn('appearance_updates',events.json())
+                recorder = VideoEventRecorder('job')
+                recorder.record([face()], self.frame, 1)
+                recorder.record([face()], self.frame, 3)
+                recorder.record([face()], self.frame, 3.5)
+                recorder.flush()
+                events = (await client.get('/api/video_analysis/job/events')).json()
+                self.assertEqual(len(events['new_detections']), 1)
+                self.assertEqual(len(events['new_snapshots']), 2)
+                params = {'last_id': events['last_id'], 'last_snapshot_id': events['last_snapshot_id']}
+                next_events = (await client.get('/api/video_analysis/job/events', params=params)).json()
+                self.assertEqual(next_events['new_detections'], [])
+                self.assertEqual(next_events['new_snapshots'], [])
+                summary = (await client.get('/api/video_analysis/job/summary')).json()
+                self.assertEqual(len(summary['snapshots']), 2)
         asyncio.run(check())
 
 

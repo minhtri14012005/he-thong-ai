@@ -10,7 +10,7 @@ from db.jobs_repo import (
     create_video_job,
     get_video_job,
     get_video_detections_since,
-    get_job_summary, get_video_appearance_updates
+    get_job_summary, get_video_appearance_updates, get_video_snapshots_since
 )
 from services.video_worker import analyze_video_background, video_settings
 from core.gallery import GallerySnapshot
@@ -76,7 +76,8 @@ async def analyze_video_api(background_tasks: BackgroundTasks, file: UploadFile 
 
 
 @router.get("/video_analysis/{job_id}/events")
-def get_video_analysis_events(job_id: str, last_id: int = Query(0, ge=0)):
+def get_video_analysis_events(job_id: str, last_id: int = Query(0, ge=0),
+                              last_snapshot_id: int = Query(0, ge=0)):
     """Lấy danh sách các phát hiện mới từ frame AI vừa quét để đẩy realtime ra Web"""
     job = get_video_job(job_id)
     if not job:
@@ -84,6 +85,7 @@ def get_video_analysis_events(job_id: str, last_id: int = Query(0, ge=0)):
 
     new_detections = get_video_detections_since(job_id, last_id)
     current_max_id = max([d["id"] for d in new_detections], default=last_id)
+    snapshots = get_video_snapshots_since(job_id, last_snapshot_id, current_max_id)
 
     return {
         "status": job["status"],
@@ -98,6 +100,8 @@ def get_video_analysis_events(job_id: str, last_id: int = Query(0, ge=0)):
         "mode": job['mode'],
         "appearance_updates": get_video_appearance_updates(job_id),
         "new_detections": new_detections,
+        "new_snapshots": snapshots,
+        "last_snapshot_id": max([s['id'] for s in snapshots], default=last_snapshot_id),
         "last_id": current_max_id
     }
 
@@ -113,5 +117,6 @@ def get_video_analysis_summary(job_id: str):
     return {
         "job": job,
         "summary": summary_data["summary"],
-        "all_detections": summary_data["all_detections"]
+        "all_detections": summary_data["all_detections"],
+        "snapshots": summary_data["snapshots"]
     }
